@@ -14,7 +14,6 @@ Retrieve incident details from ServiceNow by sys_id or incident number.
   - [Fields Parameter](#fields-parameter)
   - [Display Value Parameter](#display-value-parameter)
 - [Output](#output)
-- [Related Skills](#related-skills)
 - [Related Domains](#related-domains)
 - [Errors](#errors)
 
@@ -164,16 +163,16 @@ JSON object containing the incident record:
 }
 ```
 
-## Related Skills
-
-Incidents are often linked to problems for root cause analysis. Use these related skills:
-
-- **[Get Problem](../problems/get-problem.md)** - Retrieve details of problems that may be the root cause
-- **[Query Problems](../problems/query-problems.md)** - Search for known problems related to this incident
-
 ## Related Domains
 
 Incidents often intersect with other ServiceNow domains. Consider these related skills for comprehensive incident management:
+
+### Problem Management
+Incidents are often linked to problems for root cause analysis:
+- **[Get Problem](../problems/get-problem.md)** - Retrieve details of problems that may be the root cause
+- **[Query Problems](../problems/query-problems.md)** - Search for known problems related to this incident
+
+> **Tip:** Check if a known error exists for recurring incidents to apply documented workarounds quickly.
 
 ### Change Management
 Incidents may be caused by changes or may require changes to resolve:

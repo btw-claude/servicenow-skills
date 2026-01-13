@@ -15,7 +15,6 @@ Search and filter incidents in ServiceNow using various criteria.
   - [Date Queries](#date-queries)
   - [Dot-Walking (Related Records)](#dot-walking-related-records)
 - [Output](#output)
-- [Related Skills](#related-skills)
 - [Related Domains](#related-domains)
 - [Errors](#errors)
 
@@ -229,16 +228,16 @@ JSON array of incident records matching the query:
 
 Returns an empty array `[]` if no incidents match the query criteria.
 
-## Related Skills
-
-Incidents are often linked to problems for root cause analysis. Use these related skills:
-
-- **[Get Problem](../problems/get-problem.md)** - Retrieve details of problems that may be the root cause
-- **[Query Problems](../problems/query-problems.md)** - Search for known problems related to incidents
-
 ## Related Domains
 
 Incidents often intersect with other ServiceNow domains. Consider these related skills for comprehensive incident management:
+
+### Problem Management
+Incidents are often linked to problems for root cause analysis:
+- **[Get Problem](../problems/get-problem.md)** - Retrieve details of problems that may be the root cause
+- **[Query Problems](../problems/query-problems.md)** - Search for known problems related to incidents
+
+> **Tip:** When analyzing incident trends, look for patterns that might indicate an underlying problem requiring root cause analysis.
 
 ### Change Management
 Incidents may be caused by changes or may require changes to resolve:

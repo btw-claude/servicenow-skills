@@ -15,7 +15,6 @@ Search and filter problems in ServiceNow using various criteria.
   - [Date Queries](#date-queries)
   - [Dot-Walking (Related Records)](#dot-walking-related-records)
 - [Output](#output)
-- [Related Skills](#related-skills)
 - [Related Domains](#related-domains)
 - [Errors](#errors)
 
@@ -237,18 +236,16 @@ JSON array of problem records matching the query:
 
 Returns an empty array `[]` if no problems match the query criteria.
 
-## Related Skills
+## Related Domains
 
+Problems often intersect with other ServiceNow domains. Consider these related skills for comprehensive problem management:
+
+### Incident Management
 Problems are often linked to incidents. Use these related skills to work with associated records:
-
 - **[Get Incident](../incidents/get-incident.md)** - Retrieve details of incidents related to problems
 - **[Query Incidents](../incidents/query-incidents.md)** - Search for incidents that may be associated with problems
 
 > **Tip:** When investigating problems, use the incidents skill to find related incidents by querying for incidents that reference the problem record.
-
-## Related Domains
-
-Problems often intersect with other ServiceNow domains. Consider these related skills for comprehensive problem management:
 
 ### Change Management
 When problems require permanent fixes, they typically trigger change requests:
