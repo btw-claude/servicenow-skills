@@ -38,10 +38,26 @@ SERVICENOW_CLIENT_SECRET=your-client-secret
 
 ### API Key Authentication
 
+API key authentication is ideal for server-to-server integrations, automated workflows, and service accounts where interactive login is not possible or desired.
+
 ```
 SERVICENOW_INSTANCE=https://your-instance.service-now.com
 SERVICENOW_API_KEY=your-api-key
 ```
+
+**When to use API Key authentication:**
+- Automated CI/CD pipelines interacting with ServiceNow
+- Background services and cron jobs
+- Integration middleware and iPaaS platforms
+- Scenarios where OAuth token refresh management adds unnecessary complexity
+
+**Generating an API Key:**
+1. Navigate to your ServiceNow instance's **System OAuth > Application Registry**
+2. Create a new OAuth API endpoint for external clients, or use **System Security > API Keys** (if enabled)
+3. Generate a new API key and associate it with an appropriate service account
+4. Copy the generated key value (it will only be shown once)
+
+Consult your ServiceNow administrator for instance-specific API key provisioning procedures, as the process may vary based on your ServiceNow version and security configuration.
 
 The credentials require appropriate ServiceNow roles for the operations you intend to perform (e.g., `itil`, `itil_admin`, `catalog_admin`).
 
@@ -71,6 +87,21 @@ ServiceNow API keys are typically Base64-encoded strings. The format varies by S
 **Note:** API key format and length may vary based on your instance configuration and any custom authentication plugins. Consult your ServiceNow administrator for instance-specific requirements.
 
 ## Security Considerations
+
+### Authentication Method Comparison
+
+When choosing an authentication method, consider the following security trade-offs:
+
+| Aspect | Basic Auth | OAuth 2.0 | API Key |
+|--------|------------|-----------|---------|
+| **Security Level** | Low | High | Medium |
+| **Credential Exposure** | Password transmitted with each request | Only tokens transmitted; credentials exchanged once | Key transmitted with each request |
+| **Token/Key Lifetime** | N/A (password-based) | Short-lived tokens (minutes to hours) | Long-lived until rotated |
+| **Revocation** | Requires password change | Tokens can be individually revoked | Key can be revoked without affecting user password |
+| **Setup Complexity** | Simple | Complex (OAuth app registration required) | Simple |
+| **Best For** | Development/testing only | Production applications | Server-to-server integrations |
+| **MFA Support** | Limited | Full support | N/A (service accounts) |
+| **Audit Trail** | Basic | Comprehensive | Good |
 
 ### API Key Security Best Practices
 
