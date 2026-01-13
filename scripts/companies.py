@@ -6,6 +6,10 @@ Provides company record operations for ServiceNow.
 Actions: get, get_by_name, query, search, latest
 Table: core_company
 Query params: name, city, state, country, active
+
+DEFAULT_FIELDS constant defines: sys_id, name, street, city, state, zip,
+country, phone, fax, website, stock_symbol, notes, contact, primary, parent,
+customer, vendor, manufacturer, active, sys_created_on, sys_updated_on.
 """
 
 from typing import Any, Dict, List, Optional
