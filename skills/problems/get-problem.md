@@ -15,7 +15,6 @@ Retrieve problem details from ServiceNow by sys_id or problem number.
   - [Display Value Parameter](#display-value-parameter)
 - [Output](#output)
 - [Workaround Best Practices](#workaround-best-practices)
-- [Related Skills](#related-skills)
 - [Related Domains](#related-domains)
 - [Errors](#errors)
 
@@ -190,18 +189,16 @@ Note: This resolves 80% of reported cases. If issue persists, escalate to Email 
 Limitation: Does not address root cause (mail server queue overflow during peak hours).
 ```
 
-## Related Skills
+## Related Domains
 
+Problems often intersect with other ServiceNow domains. Consider these related skills for comprehensive problem management:
+
+### Incident Management
 Problems are often linked to incidents. Use these related skills to work with associated records:
-
 - **[Get Incident](../incidents/get-incident.md)** - Retrieve details of incidents related to this problem
 - **[Query Incidents](../incidents/query-incidents.md)** - Search for incidents that may be associated with the problem
 
 > **Tip:** Use the `related_incidents` field to see how many incidents are linked to a problem, then use the incidents skill to investigate them further.
-
-## Related Domains
-
-Problems often intersect with other ServiceNow domains. Consider these related skills for comprehensive problem management:
 
 ### Change Management
 When a problem requires a permanent fix, it typically triggers a change request:
