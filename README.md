@@ -10,6 +10,7 @@ Claude Code skills for ServiceNow ITSM operations - query incidents, changes, pr
 - [Security Considerations](#security-considerations)
 - [Error Handling](#error-handling)
 - [Rate Limiting](#rate-limiting)
+- [Encoded Query Syntax](#encoded-query-syntax)
 - [Available Operations](#available-operations)
 
 ## Overview
@@ -368,6 +369,119 @@ For applications serving multiple users:
 - Use service accounts judiciously for shared operations
 - Consider distributing requests across multiple service accounts for high-volume scenarios
 - Implement application-level rate limiting to stay well under ServiceNow limits
+
+## Encoded Query Syntax
+
+ServiceNow uses encoded queries to filter records in API requests. Understanding this syntax is essential for effective querying across incidents, changes, problems, and other tables.
+
+### Basic Syntax
+
+Encoded queries use the format: `field_name=value` or `field_nameOPERATORvalue`
+
+Multiple conditions are joined with:
+- `^` (AND) - All conditions must match
+- `^OR` (OR) - Any condition must match
+- `^NQ` (New Query) - Starts a new query group
+
+### Common Operators
+
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `=` | Equals | `state=1` |
+| `!=` | Not equals | `state!=7` |
+| `LIKE` | Contains | `short_descriptionLIKEnetwork` |
+| `STARTSWITH` | Starts with | `numberSTARTSWITHINC` |
+| `ENDSWITH` | Ends with | `numberENDSWITH001` |
+| `<` | Less than | `priority<3` |
+| `>` | Greater than | `priority>1` |
+| `<=` | Less than or equal | `priority<=2` |
+| `>=` | Greater than or equal | `priority>=2` |
+| `ISEMPTY` | Field is empty | `assigned_toISEMPTY` |
+| `ISNOTEMPTY` | Field is not empty | `assigned_toISNOTEMPTY` |
+| `IN` | Value in list | `stateIN1,2,3` |
+| `NOT IN` | Value not in list | `stateNOT IN6,7` |
+| `BETWEEN` | Value in range | `sys_created_onBETWEENjavascript:gs.daysAgoStart(7)@javascript:gs.daysAgoEnd(0)` |
+
+### Date/Time Queries
+
+ServiceNow supports special date functions for time-based queries:
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `gs.daysAgo(n)` | n days ago | `sys_created_on>=javascript:gs.daysAgo(7)` |
+| `gs.daysAgoStart(n)` | Start of day n days ago | `sys_created_on>=javascript:gs.daysAgoStart(7)` |
+| `gs.daysAgoEnd(n)` | End of day n days ago | `sys_created_on<=javascript:gs.daysAgoEnd(0)` |
+| `gs.hoursAgo(n)` | n hours ago | `sys_updated_on>=javascript:gs.hoursAgo(24)` |
+| `gs.beginningOfLastMonth()` | First day of last month | `sys_created_on>=javascript:gs.beginningOfLastMonth()` |
+| `gs.endOfLastMonth()` | Last day of last month | `sys_created_on<=javascript:gs.endOfLastMonth()` |
+| `gs.beginningOfThisMonth()` | First day of current month | `sys_created_on>=javascript:gs.beginningOfThisMonth()` |
+| `gs.beginningOfThisYear()` | First day of current year | `sys_created_on>=javascript:gs.beginningOfThisYear()` |
+
+### Query Examples
+
+**Find open high-priority incidents:**
+```
+state=1^priority<=2
+```
+
+**Find incidents created in the last 7 days:**
+```
+sys_created_on>=javascript:gs.daysAgo(7)
+```
+
+**Find unassigned incidents with "network" in description:**
+```
+assigned_toISEMPTY^short_descriptionLIKEnetwork
+```
+
+**Find incidents in states 1, 2, or 3 ordered by priority:**
+```
+stateIN1,2,3^ORDERBYpriority
+```
+
+**Find P1 or P2 incidents created this month:**
+```
+priorityIN1,2^sys_created_on>=javascript:gs.beginningOfThisMonth()
+```
+
+**Complex query with OR conditions:**
+```
+state=1^priority=1^ORstate=2^priority=2
+```
+
+### Ordering Results
+
+Add `^ORDERBY` or `^ORDERBYDESC` to sort results:
+
+```
+state=1^ORDERBYpriority          # Ascending by priority
+state=1^ORDERBYDESCsys_created_on # Descending by creation date
+```
+
+### Escaping Special Characters
+
+When querying for values containing special characters (`^`, `=`, etc.), URL-encode them:
+- `^` becomes `%5E`
+- `=` becomes `%3D`
+- `&` becomes `%26`
+
+### Reference Field Queries
+
+Query reference fields using dot notation to access related record fields:
+
+```
+assigned_to.name=John Smith           # Query by referenced user name
+cmdb_ci.sys_class_name=cmdb_ci_server # Query by CI class
+company.name=Acme Corp                # Query by company name
+```
+
+### Building Encoded Queries in ServiceNow
+
+To generate encoded queries from the ServiceNow UI:
+1. Navigate to the desired table list view
+2. Add filters using the filter builder
+3. Right-click the filter breadcrumb
+4. Select "Copy query" to get the encoded query string
 
 ## Available Operations
 
