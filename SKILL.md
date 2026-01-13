@@ -32,6 +32,19 @@ SERVICENOW_INSTANCE=https://your-instance.service-now.com
 SERVICENOW_API_KEY=your-api-key
 ```
 
+#### API Key Format Requirements
+
+ServiceNow API keys are typically Base64-encoded strings. The format varies by ServiceNow version:
+
+| ServiceNow Version | Key Format | Typical Length |
+|-------------------|------------|----------------|
+| **San Diego and later** | Base64-encoded UUID | 32-44 characters |
+| **Rome and earlier** | Alphanumeric string | 20-40 characters |
+
+**Valid characters:** `A-Z`, `a-z`, `0-9`, `+`, `/`, `=` (for Base64 padding)
+
+**Note:** API key format and length may vary based on your instance configuration and any custom authentication plugins. Consult your ServiceNow administrator for instance-specific requirements.
+
 The credentials require appropriate ServiceNow roles for the operations you intend to perform (e.g., `itil`, `itil_admin`, `catalog_admin`).
 
 ### Authentication Method Recommendations
@@ -48,17 +61,14 @@ The credentials require appropriate ServiceNow roles for the operations you inte
 
 When using API key authentication, follow these security best practices:
 
-1. **Key Rotation**: Regularly rotate API keys (recommended every 90 days) to limit exposure from compromised credentials.
-
-2. **Least Privilege**: Create API keys with the minimum required permissions for your integration. Avoid using admin-level keys for routine operations.
-
-3. **Secure Storage**: Never commit API keys to version control. Use environment variables or secure secret management solutions (e.g., HashiCorp Vault, AWS Secrets Manager).
-
-4. **Access Logging**: Enable API access logging in ServiceNow to monitor key usage and detect anomalies.
-
-5. **IP Restrictions**: Where possible, configure IP allowlists in ServiceNow to restrict API key usage to known source addresses.
-
-6. **Separate Keys per Integration**: Use distinct API keys for different integrations to enable granular access control and easier revocation if needed.
+| Practice | Recommendation | Details |
+|----------|----------------|---------|
+| **Key Rotation** | Rotate every 90 days | Limits exposure from compromised credentials |
+| **Least Privilege** | Minimum required permissions | Avoid admin-level keys for routine operations |
+| **Secure Storage** | Use environment variables or secret managers | Never commit API keys to version control. Use HashiCorp Vault, AWS Secrets Manager, or similar |
+| **Access Logging** | Enable API access logging | Monitor key usage and detect anomalies in ServiceNow |
+| **IP Restrictions** | Configure IP allowlists | Restrict API key usage to known source addresses where possible |
+| **Separate Keys** | Distinct key per integration | Enables granular access control and easier revocation if needed |
 
 ## Available Operations
 
