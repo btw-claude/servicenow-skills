@@ -526,6 +526,8 @@ Multiple conditions are joined with:
 | `IN` | Value in list | `stateIN1,2,3` |
 | `NOT IN` | Value not in list | `stateNOT IN6,7` |
 | `BETWEEN` | Value in range | `sys_created_onBETWEENjavascript:gs.daysAgoStart(7)@javascript:gs.daysAgoEnd(0)` |
+| `SAMEAS` | Field equals another field | `assigned_toSAMEAScaller_id` |
+| `NSAMEAS` | Field not equals another field | `assigned_toNSAMEAScaller_id` |
 
 ### Date/Time Queries
 
@@ -572,6 +574,16 @@ priorityIN1,2^sys_created_on>=javascript:gs.beginningOfThisMonth()
 **Complex query with OR conditions:**
 ```
 state=1^priority=1^ORstate=2^priority=2
+```
+
+**Find incidents where assignee is the same as caller (self-reported):**
+```
+assigned_toSAMEAScaller_id
+```
+
+**Find incidents where assignee differs from caller:**
+```
+assigned_toNSAMEAScaller_id
 ```
 
 ### Ordering Results
