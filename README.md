@@ -173,25 +173,44 @@ Not all errors should trigger immediate retries. Use the following guidance:
 ### Recommended Retry Pattern
 
 ```python
-# NOTE: This is an illustrative pattern - adapt exception handling to your implementation.
-# RetryableError represents a custom exception you would define for your use case,
-# e.g., class RetryableError(Exception): pass
+# Integration with ServiceNow Skills: This pattern uses the exception classes
+# defined in scripts/servicenow_api.py for proper error handling.
 
 import time
 import random
+from scripts.servicenow_api import (
+    ServiceNowError,
+    RateLimitError,
+    AuthenticationError,
+    create_client
+)
 
 def retry_with_backoff(func, max_retries=3, base_delay=1):
     """
     Retry a function with exponential backoff and jitter.
+
+    Retries on RateLimitError and general ServiceNowError (5xx errors).
+    Does not retry on AuthenticationError (401/403) as these require
+    credential fixes, not retries.
     """
     for attempt in range(max_retries):
         try:
             return func()
-        except RetryableError as e:  # Replace with your specific retryable exception(s)
+        except RateLimitError as e:
+            # Always retry rate limit errors with backoff
             if attempt == max_retries - 1:
                 raise
             delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
             time.sleep(delay)
+        except ServiceNowError as e:
+            # Only retry 5xx server errors
+            if e.status_code and 500 <= e.status_code < 600:
+                if attempt == max_retries - 1:
+                    raise
+                delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                time.sleep(delay)
+            else:
+                raise  # Don't retry 4xx client errors
 ```
 
 ## Rate Limiting
@@ -260,27 +279,46 @@ When receiving a `429` response:
 4. **Log rate limit events** for capacity planning
 
 ```python
-# NOTE: This is an illustrative pattern demonstrating rate limit handling logic.
-# Integrate this into your retry loop, passing the current attempt number.
+# Integration with ServiceNow Skills: This pattern demonstrates handling
+# RateLimitError from scripts/servicenow_api.py with Retry-After header support.
 
-def handle_rate_limit(response, attempt_number=0):
+import time
+import random
+from scripts.servicenow_api import RateLimitError, create_client
+
+def handle_rate_limit_with_retry(client_func, max_retries=3):
     """
-    Handle rate limit response with appropriate backoff.
+    Execute a ServiceNow client function with rate limit handling.
 
     Args:
-        response: The HTTP response object from the rate-limited request.
-        attempt_number: Current retry attempt (0-indexed) for exponential backoff calculation.
-    """
-    retry_after = response.headers.get('Retry-After')
-    if retry_after:
-        wait_time = int(retry_after)
-    else:
-        # Default exponential backoff (capped at 60 seconds)
-        wait_time = min(60, 2 ** attempt_number)
+        client_func: A callable that invokes the ServiceNow client.
+        max_retries: Maximum number of retry attempts.
 
-    # Add jitter (10-20% randomization) to prevent thundering herd
-    jitter = wait_time * random.uniform(0.1, 0.2)
-    time.sleep(wait_time + jitter)
+    Returns:
+        The result from the client function.
+
+    Raises:
+        RateLimitError: If rate limit is still exceeded after max_retries.
+    """
+    for attempt in range(max_retries):
+        try:
+            return client_func()
+        except RateLimitError as e:
+            if attempt == max_retries - 1:
+                raise
+
+            # Check for Retry-After in the error details if available
+            wait_time = min(60, 2 ** attempt)  # Default exponential backoff
+
+            # Add jitter (10-20% randomization) to prevent thundering herd
+            jitter = wait_time * random.uniform(0.1, 0.2)
+            time.sleep(wait_time + jitter)
+
+# Example usage with the ServiceNow client:
+# client = create_client()
+# result = handle_rate_limit_with_retry(
+#     lambda: client.get('incident', query='state=1', limit=100)
+# )
 ```
 
 ### Rate Limiting Across Multiple Users
