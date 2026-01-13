@@ -17,7 +17,7 @@ SERVICENOW_USERNAME=your-username
 SERVICENOW_PASSWORD=your-password
 ```
 
-Alternatively, you can use OAuth or API key authentication:
+Alternatively, you can use OAuth authentication:
 
 ```
 SERVICENOW_INSTANCE=https://your-instance.service-now.com
@@ -26,6 +26,15 @@ SERVICENOW_CLIENT_SECRET=your-client-secret
 ```
 
 The credentials require appropriate ServiceNow roles for the operations you intend to perform (e.g., `itil`, `itil_admin`, `catalog_admin`).
+
+### Authentication Method Recommendations
+
+| Environment | Recommended Method | Rationale |
+|-------------|-------------------|-----------|
+| **Development** | Username/Password | Simpler setup for local development and testing. Easier to rotate credentials during development cycles. |
+| **Production** | OAuth 2.0 | More secure token-based authentication. Supports token refresh without exposing credentials. Better audit trail and access control. |
+
+**Note:** For production environments, OAuth 2.0 is strongly recommended as it provides better security through short-lived tokens, avoids storing plain-text passwords, and integrates better with enterprise identity management systems.
 
 ## Available Operations
 
@@ -80,3 +89,160 @@ Read the specific skill file for detailed usage and examples.
 3. Use the appropriate Python script with required parameters
 
 For ServiceNow encoded query syntax and examples, see `skills/common/encoded-queries.md`.
+
+## Error Handling Patterns
+
+### ServiceNow API Error Responses
+
+ServiceNow REST APIs return standard HTTP status codes along with error details in the response body. Understanding these patterns helps with debugging and implementing robust error handling.
+
+#### Common HTTP Status Codes
+
+| Status Code | Meaning | Typical Cause |
+|-------------|---------|---------------|
+| `400` | Bad Request | Invalid query syntax, malformed JSON, or missing required fields |
+| `401` | Unauthorized | Invalid credentials, expired token, or missing authentication |
+| `403` | Forbidden | User lacks required role or ACL prevents access |
+| `404` | Not Found | Record doesn't exist or table name is incorrect |
+| `405` | Method Not Allowed | HTTP method not supported for the endpoint |
+| `429` | Too Many Requests | Rate limit exceeded (see Rate Limiting section) |
+| `500` | Internal Server Error | ServiceNow server-side error |
+| `503` | Service Unavailable | Instance is down or undergoing maintenance |
+
+#### Error Response Format
+
+ServiceNow returns errors in the following JSON structure:
+
+```json
+{
+  "error": {
+    "message": "Human-readable error description",
+    "detail": "Additional technical details about the error"
+  },
+  "status": "failure"
+}
+```
+
+#### Retry Strategies for Transient Failures
+
+Not all errors should trigger immediate retries. Use the following guidance:
+
+| Error Type | Retry? | Strategy |
+|------------|--------|----------|
+| `401` Unauthorized | No | Re-authenticate, refresh OAuth token |
+| `403` Forbidden | No | Check user permissions and ACLs |
+| `404` Not Found | No | Verify record exists before retrying |
+| `429` Rate Limited | Yes | Use exponential backoff with jitter |
+| `500` Server Error | Yes | Retry with exponential backoff (max 3 attempts) |
+| `503` Service Unavailable | Yes | Wait and retry, check instance status page |
+
+**Recommended Retry Pattern:**
+
+```python
+import time
+import random
+
+def retry_with_backoff(func, max_retries=3, base_delay=1):
+    """
+    Retry a function with exponential backoff and jitter.
+    """
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except RetryableError as e:
+            if attempt == max_retries - 1:
+                raise
+            delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+            time.sleep(delay)
+```
+
+## Rate Limiting
+
+### ServiceNow API Rate Limits
+
+ServiceNow implements rate limiting to ensure fair resource allocation and platform stability. Understanding these limits is crucial for building reliable integrations.
+
+#### Default Rate Limits
+
+| Limit Type | Default Value | Scope |
+|------------|---------------|-------|
+| **Per-user rate limit** | 500 requests/minute | Per authenticated user |
+| **Concurrent requests** | 10-25 simultaneous | Per user session |
+| **Batch operations** | Varies by instance | Contact ServiceNow admin |
+
+**Note:** Actual limits vary by instance configuration, licensing, and ServiceNow version. Contact your ServiceNow administrator for specific limits.
+
+#### Detecting Rate Limiting
+
+When rate limited, ServiceNow returns:
+
+- **HTTP Status Code:** `429 Too Many Requests`
+- **Retry-After Header:** Seconds to wait before retrying (when available)
+
+```json
+{
+  "error": {
+    "message": "Rate limit exceeded",
+    "detail": "Too many requests. Please wait before retrying."
+  },
+  "status": "failure"
+}
+```
+
+### Best Practices for Avoiding Throttling
+
+1. **Batch Operations When Possible**
+   - Use bulk APIs for multiple record operations
+   - Combine related queries to reduce API calls
+
+2. **Implement Request Queuing**
+   - Queue requests and process at a controlled rate
+   - Avoid burst patterns during peak hours
+
+3. **Cache Frequently Accessed Data**
+   - Cache reference data (e.g., user lookups, category lists)
+   - Set appropriate TTLs based on data volatility
+
+4. **Use Pagination Efficiently**
+   - Fetch only needed fields with `sysparm_fields`
+   - Use reasonable `sysparm_limit` values (100-1000)
+   - Avoid fetching all records when filters suffice
+
+5. **Monitor Your Usage**
+   - Track API call patterns in your application
+   - Set up alerts for approaching rate limits
+
+### Handling Rate Limit Responses
+
+When receiving a `429` response:
+
+1. **Read the Retry-After header** if present
+2. **Implement exponential backoff** starting at 1 second
+3. **Add jitter** to prevent thundering herd problems
+4. **Log rate limit events** for capacity planning
+
+```python
+def handle_rate_limit(response):
+    """
+    Handle rate limit response with appropriate backoff.
+    """
+    retry_after = response.headers.get('Retry-After')
+    if retry_after:
+        wait_time = int(retry_after)
+    else:
+        # Default exponential backoff
+        wait_time = min(60, 2 ** attempt_number)
+
+    # Add jitter (10-20% randomization)
+    jitter = wait_time * random.uniform(0.1, 0.2)
+    time.sleep(wait_time + jitter)
+```
+
+### Rate Limiting Across Multiple Users
+
+For applications serving multiple users:
+
+- Each authenticated user has their own rate limit quota
+- Use service accounts judiciously for shared operations
+- Consider distributing requests across multiple service accounts for high-volume scenarios
+- Implement application-level rate limiting to stay well under ServiceNow limits
