@@ -8,7 +8,6 @@ Tables: cmdb_ci, cmdb_rel_ci
 Query params: ci_class, operational_status, location
 """
 
-import sys
 from typing import Any, Dict, List, Optional
 
 from servicenow_api import (
@@ -99,7 +98,7 @@ def get_ci(
         client: ServiceNow API client.
         sys_id: The sys_id of the CI to retrieve.
         fields: Optional comma-separated list of fields to return.
-            Defaults to DEFAULT_FIELDS if not specified.
+            When None, defaults to DEFAULT_FIELDS constant defined at module level.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -112,7 +111,6 @@ def get_ci(
     if not sys_id:
         raise ValidationError("sys_id is required for get action")
 
-    # Use DEFAULT_FIELDS when no specific fields are requested
     effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
 
     result = client.get(
@@ -140,7 +138,7 @@ def get_ci_by_name(
         name: The name of the CI to retrieve.
         ci_class: Optional filter by CI class name.
         fields: Optional comma-separated list of fields to return.
-            Defaults to DEFAULT_FIELDS if not specified.
+            When None, defaults to DEFAULT_FIELDS constant defined at module level.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -154,14 +152,10 @@ def get_ci_by_name(
         raise ValidationError("name is required for get_by_name action")
 
     query_parts = [f"name={name}"]
-
-    # Add CI class filter if provided
     if ci_class is not None:
         query_parts.append(f"sys_class_name={ci_class}")
 
     full_query = "^".join(query_parts)
-
-    # Use DEFAULT_FIELDS when no specific fields are requested
     effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
 
     result = client.get(
@@ -201,7 +195,7 @@ def query_cis(
         location: Filter by location name or sys_id.
         query: Additional encoded query string to append.
         fields: Optional comma-separated list of fields to return.
-            Defaults to DEFAULT_FIELDS if not specified.
+            When None, defaults to DEFAULT_FIELDS constant defined at module level.
         limit: Maximum number of records to return.
         offset: Starting record index for pagination.
         order_by: Field to sort by (prefix with - for descending).
@@ -210,27 +204,18 @@ def query_cis(
     Returns:
         List of CI records matching the query criteria.
     """
-    # Build query string from parameters
     query_parts = []
 
     if ci_class is not None:
         query_parts.append(f"sys_class_name={ci_class}")
-
     if operational_status is not None:
         query_parts.append(f"operational_status={operational_status}")
-
     if location is not None:
-        # Support both sys_id and name lookup
         query_parts.append(f"location={location}")
-
-    # Append any additional query string
     if query:
         query_parts.append(query)
 
-    # Combine query parts with ^ (AND) operator
     full_query = "^".join(query_parts) if query_parts else None
-
-    # Use DEFAULT_FIELDS when no specific fields are requested
     effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
 
     result = client.get(
@@ -264,7 +249,7 @@ def search_cis(
         search_term: Text to search for in name, asset_tag, or serial_number fields.
         ci_class: Optional filter by CI class name.
         fields: Optional comma-separated list of fields to return.
-            Defaults to DEFAULT_FIELDS if not specified.
+            When None, defaults to DEFAULT_FIELDS constant defined at module level.
         limit: Maximum number of records to return.
         offset: Starting record index for pagination.
         order_by: Field to sort by (prefix with - for descending).
@@ -279,21 +264,16 @@ def search_cis(
     if not search_term:
         raise ValidationError("search_term is required for search action")
 
-    # Build search query using CONTAINS operator (LIKE)
     search_conditions = [
         f"nameLIKE{search_term}",
         f"asset_tagLIKE{search_term}",
         f"serial_numberLIKE{search_term}",
     ]
-
-    # Use OR conditions for search
     search_query = "^OR".join(search_conditions)
 
-    # Add CI class filter if provided
     if ci_class is not None:
         search_query = f"sys_class_name={ci_class}^({search_query})"
 
-    # Use DEFAULT_FIELDS when no specific fields are requested
     effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
 
     result = client.get(
@@ -331,7 +311,7 @@ def get_ci_relationships(
                   'child' returns relationships where CI is the child.
                   'both' or None returns all relationships.
         fields: Optional comma-separated list of fields to return.
-            Defaults to RELATIONSHIP_FIELDS if not specified.
+            When None, defaults to RELATIONSHIP_FIELDS constant defined at module level.
         limit: Maximum number of records to return.
         offset: Starting record index for pagination.
         display_value: Optional display value setting ('true', 'false', 'all').
@@ -345,24 +325,18 @@ def get_ci_relationships(
     if not sys_id:
         raise ValidationError("sys_id is required for relationships action")
 
-    # Build query based on direction
     query_parts = []
-
     if direction == "parent":
         query_parts.append(f"parent={sys_id}")
     elif direction == "child":
         query_parts.append(f"child={sys_id}")
     else:
-        # Both directions: use OR condition
         query_parts.append(f"parent={sys_id}^ORchild={sys_id}")
 
-    # Add relationship type filter if provided
     if relationship_type is not None:
         query_parts.append(f"type={relationship_type}")
 
     full_query = "^".join(query_parts) if query_parts else None
-
-    # Use RELATIONSHIP_FIELDS when no specific fields are requested
     effective_fields = fields if fields is not None else ",".join(RELATIONSHIP_FIELDS)
 
     result = client.get(
@@ -392,7 +366,7 @@ def get_ci_by_ip(
         ip_address: The IP address to search for.
         ci_class: Optional filter by CI class name.
         fields: Optional comma-separated list of fields to return.
-            Defaults to DEFAULT_FIELDS if not specified.
+            When None, defaults to DEFAULT_FIELDS constant defined at module level.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -405,14 +379,10 @@ def get_ci_by_ip(
         raise ValidationError("ip_address is required for by_ip action")
 
     query_parts = [f"ip_address={ip_address}"]
-
-    # Add CI class filter if provided
     if ci_class is not None:
         query_parts.append(f"sys_class_name={ci_class}")
 
     full_query = "^".join(query_parts)
-
-    # Use DEFAULT_FIELDS when no specific fields are requested
     effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
 
     result = client.get(
@@ -440,7 +410,7 @@ def get_ci_by_serial(
         serial_number: The serial number to search for.
         ci_class: Optional filter by CI class name.
         fields: Optional comma-separated list of fields to return.
-            Defaults to DEFAULT_FIELDS if not specified.
+            When None, defaults to DEFAULT_FIELDS constant defined at module level.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -453,14 +423,10 @@ def get_ci_by_serial(
         raise ValidationError("serial_number is required for by_serial action")
 
     query_parts = [f"serial_number={serial_number}"]
-
-    # Add CI class filter if provided
     if ci_class is not None:
         query_parts.append(f"sys_class_name={ci_class}")
 
     full_query = "^".join(query_parts)
-
-    # Use DEFAULT_FIELDS when no specific fields are requested
     effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
 
     result = client.get(

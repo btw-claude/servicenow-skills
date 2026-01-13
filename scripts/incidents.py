@@ -74,7 +74,7 @@ def get_incident(
         client: ServiceNow API client.
         sys_id: The sys_id of the incident to retrieve.
         fields: Optional comma-separated list of fields to return.
-            Defaults to DEFAULT_FIELDS if not specified.
+            When None, defaults to DEFAULT_FIELDS constant defined at module level.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -87,7 +87,6 @@ def get_incident(
     if not sys_id:
         raise ValidationError("sys_id is required for get action")
 
-    # Use DEFAULT_FIELDS when no specific fields are requested
     effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
 
     result = client.get(
@@ -113,7 +112,7 @@ def get_incident_by_number(
         client: ServiceNow API client.
         number: The incident number (e.g., 'INC0010001').
         fields: Optional comma-separated list of fields to return.
-            Defaults to DEFAULT_FIELDS if not specified.
+            When None, defaults to DEFAULT_FIELDS constant defined at module level.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -127,8 +126,6 @@ def get_incident_by_number(
         raise ValidationError("number is required for get_by_number action")
 
     query = f"number={number}"
-
-    # Use DEFAULT_FIELDS when no specific fields are requested
     effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
 
     result = client.get(
@@ -172,7 +169,7 @@ def query_incidents(
         active: Filter by active status (true/false).
         query: Additional encoded query string to append.
         fields: Optional comma-separated list of fields to return.
-            Defaults to DEFAULT_FIELDS if not specified.
+            When None, defaults to DEFAULT_FIELDS constant defined at module level.
         limit: Maximum number of records to return.
         offset: Starting record index for pagination.
         order_by: Field to sort by (prefix with - for descending).
@@ -181,7 +178,6 @@ def query_incidents(
     Returns:
         List of incident records matching the query criteria.
     """
-    # Build query string from parameters
     query_parts = []
 
     if state is not None:
@@ -201,14 +197,10 @@ def query_incidents(
         active_value = "true" if active else "false"
         query_parts.append(f"active={active_value}")
 
-    # Append any additional query string
     if query:
         query_parts.append(query)
 
-    # Combine query parts with ^ (AND) operator
     full_query = "^".join(query_parts) if query_parts else None
-
-    # Use DEFAULT_FIELDS when no specific fields are requested
     effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
 
     result = client.get(
