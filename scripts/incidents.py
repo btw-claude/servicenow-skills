@@ -96,7 +96,10 @@ def get_incident(
         display_value=display_value,
     )
 
-    return result.get("result", {})
+    record = result.get("result", {})
+    if not record:
+        raise NotFoundError(f"Incident with sys_id '{sys_id}' not found")
+    return record
 
 
 def get_incident_by_number(
