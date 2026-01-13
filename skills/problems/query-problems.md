@@ -4,6 +4,21 @@ Search and filter problems in ServiceNow using various criteria.
 
 > **Navigation:** [Back to Skill Index](../../SKILL.md) | [Get Problem](./get-problem.md)
 
+## Table of Contents
+
+- [Script](#script)
+- [Input](#input)
+- [State Values](#state-values)
+- [Priority Values](#priority-values)
+- [Examples](#examples)
+- [Encoded Query Syntax](#encoded-query-syntax)
+  - [Date Queries](#date-queries)
+  - [Dot-Walking (Related Records)](#dot-walking-related-records)
+- [Output](#output)
+- [Related Skills](#related-skills)
+- [Related Domains](#related-domains)
+- [Errors](#errors)
+
 ## Script
 
 ```bash
@@ -230,6 +245,23 @@ Problems are often linked to incidents. Use these related skills to work with as
 - **[Query Incidents](../incidents/query-incidents.md)** - Search for incidents that may be associated with problems
 
 > **Tip:** When investigating problems, use the incidents skill to find related incidents by querying for incidents that reference the problem record.
+
+## Related Domains
+
+Problems often intersect with other ServiceNow domains. Consider these related skills for comprehensive problem management:
+
+### Change Management
+When problems require permanent fixes, they typically trigger change requests:
+- **[Get Change Request](../changes/get-change.md)** - Retrieve details of change requests created to resolve problems
+- **[Query Change Requests](../changes/query-changes.md)** - Search for changes related to problem resolution
+
+> **Tip:** Query for problems with `state=3` (Pending Change) to find problems that are awaiting change implementation.
+
+### Service Catalog
+Problems may be resolved through standard service requests or may trigger catalog items for remediation:
+- **[Browse Catalog](../catalog/browse-catalog.md)** - Browse available service catalog items that may help resolve issues
+- **[Search Catalog](../catalog/search-catalog.md)** - Search for specific service offerings related to problem resolution
+- **[Request Status](../catalog/request-status.md)** - Track the status of service requests created as part of problem resolution
 
 ## Errors
 

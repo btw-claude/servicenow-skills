@@ -4,6 +4,20 @@ Retrieve incident details from ServiceNow by sys_id or incident number.
 
 > **Navigation:** [Back to Skill Index](../../SKILL.md) | [Query Incidents](./query-incidents.md)
 
+## Table of Contents
+
+- [Script](#script)
+- [Operations](#operations)
+  - [Get by sys_id](#get-by-sys_id)
+  - [Get by Number](#get-by-number)
+- [Parameters](#parameters)
+  - [Fields Parameter](#fields-parameter)
+  - [Display Value Parameter](#display-value-parameter)
+- [Output](#output)
+- [Related Skills](#related-skills)
+- [Related Domains](#related-domains)
+- [Errors](#errors)
+
 ## Script
 
 ```bash
@@ -156,6 +170,23 @@ Incidents are often linked to problems for root cause analysis. Use these relate
 
 - **[Get Problem](../problems/get-problem.md)** - Retrieve details of problems that may be the root cause
 - **[Query Problems](../problems/query-problems.md)** - Search for known problems related to this incident
+
+## Related Domains
+
+Incidents often intersect with other ServiceNow domains. Consider these related skills for comprehensive incident management:
+
+### Change Management
+Incidents may be caused by changes or may require changes to resolve:
+- **[Get Change Request](../changes/get-change.md)** - Retrieve details of change requests that may have caused the incident
+- **[Query Change Requests](../changes/query-changes.md)** - Search for recent changes that might be related to the incident
+
+> **Tip:** When troubleshooting incidents, check recent changes in the affected area using the changes skill to identify potential root causes.
+
+### Service Catalog
+Incidents may result in service requests or be related to catalog items:
+- **[Browse Catalog](../catalog/browse-catalog.md)** - Browse available service catalog items for remediation options
+- **[Search Catalog](../catalog/search-catalog.md)** - Search for specific service offerings that may help resolve the incident
+- **[Request Status](../catalog/request-status.md)** - Track the status of service requests related to incident resolution
 
 ## Errors
 

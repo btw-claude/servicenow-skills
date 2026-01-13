@@ -2,6 +2,23 @@
 
 Search and filter change requests in ServiceNow using various criteria.
 
+> **Navigation:** [Back to Skill Index](../../SKILL.md) | [Get Change Request](./get-change.md)
+
+## Table of Contents
+
+- [Script](#script)
+- [Input](#input)
+- [State Values](#state-values)
+- [Type Values](#type-values)
+- [Risk Values](#risk-values)
+- [Examples](#examples)
+- [Encoded Query Syntax](#encoded-query-syntax)
+  - [Date Queries](#date-queries)
+  - [Dot-Walking (Related Records)](#dot-walking-related-records)
+- [Output](#output)
+- [Related Domains](#related-domains)
+- [Errors](#errors)
+
 ## Script
 
 ```bash
@@ -243,6 +260,28 @@ JSON array of change request records matching the query:
 ```
 
 Returns an empty array `[]` if no change requests match the query criteria.
+
+## Related Domains
+
+Change requests often intersect with other ServiceNow domains. Consider these related skills for comprehensive change management:
+
+### Incident Management
+Changes may cause incidents or be created in response to incidents:
+- **[Get Incident](../incidents/get-incident.md)** - Retrieve details of incidents that may be related to changes
+- **[Query Incidents](../incidents/query-incidents.md)** - Search for incidents caused by or related to changes
+
+> **Tip:** Query for incidents created shortly after change implementation to identify change-related issues.
+
+### Problem Management
+Changes are often created to resolve underlying problems:
+- **[Get Problem](../problems/get-problem.md)** - Retrieve details of problems that triggered changes
+- **[Query Problems](../problems/query-problems.md)** - Search for problems awaiting change implementation (state=3)
+
+### Service Catalog
+Changes may be requested through the service catalog:
+- **[Browse Catalog](../catalog/browse-catalog.md)** - Browse available service catalog items related to change requests
+- **[Search Catalog](../catalog/search-catalog.md)** - Search for standard change templates in the catalog
+- **[Request Status](../catalog/request-status.md)** - Track the status of catalog-initiated change requests
 
 ## Errors
 

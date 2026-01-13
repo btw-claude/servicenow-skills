@@ -4,6 +4,21 @@ Retrieve problem details from ServiceNow by sys_id or problem number.
 
 > **Navigation:** [Back to Skill Index](../../SKILL.md) | [Query Problems](./query-problems.md)
 
+## Table of Contents
+
+- [Script](#script)
+- [Operations](#operations)
+  - [Get by sys_id](#get-by-sys_id)
+  - [Get by Number](#get-by-number)
+- [Parameters](#parameters)
+  - [Fields Parameter](#fields-parameter)
+  - [Display Value Parameter](#display-value-parameter)
+- [Output](#output)
+- [Workaround Best Practices](#workaround-best-practices)
+- [Related Skills](#related-skills)
+- [Related Domains](#related-domains)
+- [Errors](#errors)
+
 ## Script
 
 ```bash
@@ -183,6 +198,23 @@ Problems are often linked to incidents. Use these related skills to work with as
 - **[Query Incidents](../incidents/query-incidents.md)** - Search for incidents that may be associated with the problem
 
 > **Tip:** Use the `related_incidents` field to see how many incidents are linked to a problem, then use the incidents skill to investigate them further.
+
+## Related Domains
+
+Problems often intersect with other ServiceNow domains. Consider these related skills for comprehensive problem management:
+
+### Change Management
+When a problem requires a permanent fix, it typically triggers a change request:
+- **[Get Change Request](../changes/get-change.md)** - Retrieve details of change requests created to resolve the problem
+- **[Query Change Requests](../changes/query-changes.md)** - Search for changes related to problem resolution
+
+> **Tip:** Check the `state` field for "Pending Change" (state=3) to identify problems awaiting a change implementation.
+
+### Service Catalog
+Problems may be resolved through standard service requests or may trigger catalog items for remediation:
+- **[Browse Catalog](../catalog/browse-catalog.md)** - Browse available service catalog items that may help resolve issues
+- **[Search Catalog](../catalog/search-catalog.md)** - Search for specific service offerings related to problem resolution
+- **[Request Status](../catalog/request-status.md)** - Track the status of service requests created as part of problem resolution
 
 ## Errors
 

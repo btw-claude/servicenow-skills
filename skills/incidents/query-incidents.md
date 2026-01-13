@@ -4,6 +4,21 @@ Search and filter incidents in ServiceNow using various criteria.
 
 > **Navigation:** [Back to Skill Index](../../SKILL.md) | [Get Incident](./get-incident.md)
 
+## Table of Contents
+
+- [Script](#script)
+- [Input](#input)
+- [State Values](#state-values)
+- [Urgency/Impact Values](#urgencyimpact-values)
+- [Examples](#examples)
+- [Encoded Query Syntax](#encoded-query-syntax)
+  - [Date Queries](#date-queries)
+  - [Dot-Walking (Related Records)](#dot-walking-related-records)
+- [Output](#output)
+- [Related Skills](#related-skills)
+- [Related Domains](#related-domains)
+- [Errors](#errors)
+
 ## Script
 
 ```bash
@@ -220,6 +235,23 @@ Incidents are often linked to problems for root cause analysis. Use these relate
 
 - **[Get Problem](../problems/get-problem.md)** - Retrieve details of problems that may be the root cause
 - **[Query Problems](../problems/query-problems.md)** - Search for known problems related to incidents
+
+## Related Domains
+
+Incidents often intersect with other ServiceNow domains. Consider these related skills for comprehensive incident management:
+
+### Change Management
+Incidents may be caused by changes or may require changes to resolve:
+- **[Get Change Request](../changes/get-change.md)** - Retrieve details of change requests that may have caused incidents
+- **[Query Change Requests](../changes/query-changes.md)** - Search for recent changes that might be related to incidents
+
+> **Tip:** When analyzing incident trends, correlate with recent changes using the changes skill to identify change-related incidents.
+
+### Service Catalog
+Incidents may result in service requests or be related to catalog items:
+- **[Browse Catalog](../catalog/browse-catalog.md)** - Browse available service catalog items for remediation options
+- **[Search Catalog](../catalog/search-catalog.md)** - Search for specific service offerings that may help resolve incidents
+- **[Request Status](../catalog/request-status.md)** - Track the status of service requests related to incident resolution
 
 ## Errors
 
