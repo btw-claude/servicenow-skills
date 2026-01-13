@@ -2,6 +2,8 @@
 
 Search and filter incidents in ServiceNow using various criteria.
 
+> **Navigation:** [Back to Skill Index](../../SKILL.md) | [Get Incident](./get-incident.md)
+
 ## Script
 
 ```bash
@@ -211,6 +213,13 @@ JSON array of incident records matching the query:
 ```
 
 Returns an empty array `[]` if no incidents match the query criteria.
+
+## Related Skills
+
+Incidents are often linked to problems for root cause analysis. Use these related skills:
+
+- **[Get Problem](../problems/get-problem.md)** - Retrieve details of problems that may be the root cause
+- **[Query Problems](../problems/query-problems.md)** - Search for known problems related to incidents
 
 ## Errors
 

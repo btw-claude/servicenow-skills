@@ -2,6 +2,8 @@
 
 Search and filter problems in ServiceNow using various criteria.
 
+> **Navigation:** [Back to Skill Index](../../SKILL.md) | [Get Problem](./get-problem.md)
+
 ## Script
 
 ```bash
@@ -219,6 +221,15 @@ JSON array of problem records matching the query:
 ```
 
 Returns an empty array `[]` if no problems match the query criteria.
+
+## Related Skills
+
+Problems are often linked to incidents. Use these related skills to work with associated records:
+
+- **[Get Incident](../incidents/get-incident.md)** - Retrieve details of incidents related to problems
+- **[Query Incidents](../incidents/query-incidents.md)** - Search for incidents that may be associated with problems
+
+> **Tip:** When investigating problems, use the incidents skill to find related incidents by querying for incidents that reference the problem record.
 
 ## Errors
 
