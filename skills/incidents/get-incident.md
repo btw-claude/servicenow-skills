@@ -8,6 +8,8 @@ Retrieve incident details from ServiceNow by sys_id or incident number.
 python scripts/incidents.py
 ```
 
+> **Note:** Run all scripts from the skill root directory (where the `scripts/` folder is located).
+
 ## Operations
 
 ### Get by sys_id
@@ -30,7 +32,7 @@ JSON object on stdin:
 ```bash
 echo '{
   "action": "get",
-  "sys_id": "a1b2c3d4e5f6g7h8i9j0"
+  "sys_id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
 }' | python scripts/incidents.py
 ```
 
@@ -39,7 +41,7 @@ Get specific fields only:
 ```bash
 echo '{
   "action": "get",
-  "sys_id": "a1b2c3d4e5f6g7h8i9j0",
+  "sys_id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
   "fields": "number,short_description,state,priority"
 }' | python scripts/incidents.py
 ```
@@ -121,7 +123,7 @@ JSON object containing the incident record:
 
 ```json
 {
-  "sys_id": "a1b2c3d4e5f6g7h8i9j0",
+  "sys_id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
   "number": "INC0010001",
   "short_description": "Email not working",
   "description": "User cannot send or receive emails",
