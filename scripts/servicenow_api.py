@@ -76,13 +76,19 @@ class ValidationError(ServiceNowError):
 
 def _parse_quoted_value(value: str) -> str:
     """
-    Parse a quoted value, handling escaped quotes within.
+    Parse a quoted value, handling escaped quotes and common escape sequences.
 
     Args:
         value: The value string (with or without quotes).
 
     Returns:
-        The unquoted value with escaped quotes resolved.
+        The unquoted value with escape sequences resolved.
+
+    Supported escape sequences:
+        - \\" or \\' - escaped quotes
+        - \\\\ - escaped backslash
+        - \\n - newline
+        - \\t - tab
     """
     value = value.strip()
 
@@ -93,18 +99,24 @@ def _parse_quoted_value(value: str) -> str:
     if value.startswith('"') and value.endswith('"') and len(value) >= 2:
         # Remove outer quotes and process escaped characters
         inner = value[1:-1]
-        # Handle escaped double quotes and backslashes
+        # Handle escape sequences (order matters: backslash first, then others)
+        inner = inner.replace('\\\\', '\x00')  # Temporarily replace escaped backslash
         inner = inner.replace('\\"', '"')
-        inner = inner.replace('\\\\', '\\')
+        inner = inner.replace('\\n', '\n')
+        inner = inner.replace('\\t', '\t')
+        inner = inner.replace('\x00', '\\')  # Restore backslash
         return inner
 
     # Check for single-quoted strings
     if value.startswith("'") and value.endswith("'") and len(value) >= 2:
         # Remove outer quotes and process escaped characters
         inner = value[1:-1]
-        # Handle escaped single quotes and backslashes
+        # Handle escape sequences (order matters: backslash first, then others)
+        inner = inner.replace('\\\\', '\x00')  # Temporarily replace escaped backslash
         inner = inner.replace("\\'", "'")
-        inner = inner.replace('\\\\', '\\')
+        inner = inner.replace('\\n', '\n')
+        inner = inner.replace('\\t', '\t')
+        inner = inner.replace('\x00', '\\')  # Restore backslash
         return inner
 
     return value
@@ -167,6 +179,15 @@ def get_config() -> Dict[str, Optional[str]]:
     # Load from env file first
     file_vars = load_env_file()
 
+    # Get timeout value with env vars taking precedence
+    timeout_str = os.environ.get("SERVICENOW_TIMEOUT", file_vars.get("SERVICENOW_TIMEOUT"))
+    timeout_value = None
+    if timeout_str:
+        try:
+            timeout_value = int(timeout_str)
+        except ValueError:
+            pass  # Invalid timeout value, will use default
+
     # Get configuration with env vars taking precedence
     config = {
         "instance": os.environ.get("SERVICENOW_INSTANCE", file_vars.get("SERVICENOW_INSTANCE")),
@@ -175,6 +196,7 @@ def get_config() -> Dict[str, Optional[str]]:
         "client_id": os.environ.get("SERVICENOW_CLIENT_ID", file_vars.get("SERVICENOW_CLIENT_ID")),
         "client_secret": os.environ.get("SERVICENOW_CLIENT_SECRET", file_vars.get("SERVICENOW_CLIENT_SECRET")),
         "api_key": os.environ.get("SERVICENOW_API_KEY", file_vars.get("SERVICENOW_API_KEY")),
+        "timeout": timeout_value,
     }
 
     # Validate required configuration
@@ -226,11 +248,17 @@ class ServiceNowClient:
             config: Optional configuration dictionary. If not provided,
                     configuration is loaded from environment.
             timeout: Optional timeout in seconds for HTTP requests.
-                     Defaults to DEFAULT_TIMEOUT (30 seconds).
+                     Defaults to SERVICENOW_TIMEOUT env var, or DEFAULT_TIMEOUT (30 seconds).
         """
         self.config = config or get_config()
         self.instance = self.config["instance"]
-        self.timeout = timeout if timeout is not None else self.DEFAULT_TIMEOUT
+        # Priority: explicit timeout param > config timeout (from env) > default
+        if timeout is not None:
+            self.timeout = timeout
+        elif self.config.get("timeout") is not None:
+            self.timeout = self.config["timeout"]
+        else:
+            self.timeout = self.DEFAULT_TIMEOUT
         self._access_token: Optional[str] = None
         self._token_type: str = "Bearer"
 
