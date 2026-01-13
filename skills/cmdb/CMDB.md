@@ -36,7 +36,7 @@ python scripts/cmdb.py
 ## Quick Reference
 
 ### CI Classes
-Common CI classes: `cmdb_ci_server`, `cmdb_ci_computer`, `cmdb_ci_database`, `cmdb_ci_netgear`, `cmdb_ci_service`
+Common CI classes: `cmdb_ci_server`, `cmdb_ci_computer`, `cmdb_ci_database`, `cmdb_ci_network_gear`, `cmdb_ci_service`
 
 ### Operational Status
 - 1: Operational
@@ -58,14 +58,62 @@ Common CI classes: `cmdb_ci_server`, `cmdb_ci_computer`, `cmdb_ci_database`, `cm
 echo '{"action": "get", "sys_id": "abc123"}' | python scripts/cmdb.py
 ```
 
+**Expected output:**
+```json
+{
+  "sys_id": "abc123",
+  "name": "web-server-01",
+  "sys_class_name": "cmdb_ci_server",
+  "ip_address": "192.168.1.100",
+  "operational_status": "1",
+  "location": "Data Center A"
+}
+```
+
 ### Find all servers
 ```bash
 echo '{"action": "query", "ci_class": "cmdb_ci_server"}' | python scripts/cmdb.py
 ```
 
+**Expected output:**
+```json
+{
+  "result": [
+    {
+      "sys_id": "abc123",
+      "name": "web-server-01",
+      "sys_class_name": "cmdb_ci_server",
+      "operational_status": "1"
+    },
+    {
+      "sys_id": "def456",
+      "name": "db-server-01",
+      "sys_class_name": "cmdb_ci_server",
+      "operational_status": "1"
+    }
+  ],
+  "count": 2
+}
+```
+
 ### Get CI relationships
 ```bash
 echo '{"action": "relationships", "sys_id": "abc123"}' | python scripts/cmdb.py
+```
+
+**Expected output:**
+```json
+{
+  "result": [
+    {
+      "sys_id": "rel001",
+      "parent": { "value": "abc123", "display_value": "web-server-01" },
+      "child": { "value": "xyz789", "display_value": "app-service-01" },
+      "type": { "value": "type001", "display_value": "Depends on::Used by" }
+    }
+  ],
+  "count": 1
+}
 ```
 
 ## Default Fields
@@ -126,3 +174,13 @@ The following fields are returned by default for the `relationships` action:
 - `sys_updated_on` - Record last update timestamp
 
 To customize the fields returned, use the `fields` parameter with a comma-separated list of field names.
+
+## Related Documentation
+
+For more information about the ServiceNow CMDB, refer to the official documentation:
+
+- [CMDB Overview](https://docs.servicenow.com/bundle/latest/page/product/configuration-management/concept/c_ConfigurationManagementOverview.html) - Introduction to the Configuration Management Database
+- [CMDB Table Hierarchy](https://docs.servicenow.com/bundle/latest/page/product/configuration-management/concept/cmdb-tables-background.html) - Understanding CI classes and table structure
+- [CI Relationships](https://docs.servicenow.com/bundle/latest/page/product/configuration-management/concept/c_CMDBRelationshipTypes.html) - Learn about relationship types between CIs
+- [CMDB API Reference](https://docs.servicenow.com/bundle/latest/page/integrate/inbound-other-web-services/concept/cmdb-api.html) - REST API documentation for CMDB operations
+- [Best Practices for CMDB](https://docs.servicenow.com/bundle/latest/page/product/configuration-management/concept/c_BestPractices.html) - Recommendations for CMDB management
