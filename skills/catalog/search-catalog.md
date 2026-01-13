@@ -168,6 +168,11 @@ When searching only categories or items, the other array will be empty:
 }
 ```
 
+## Related Documentation
+
+- [Browse Catalog](browse-catalog.md) - For browsing categories and items by hierarchy and filtering
+- [Request Status](request-status.md) - For checking the status of submitted catalog requests
+
 ## Errors
 
 The script will output error details to stderr and exit with non-zero status if:
