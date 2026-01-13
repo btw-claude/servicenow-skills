@@ -221,6 +221,26 @@ class TestQuoteParsing(unittest.TestCase):
         # Unquoted strings should be returned as-is
         self.assertEqual(_parse_quoted_value('value\\nwith\\tescapes'), 'value\\nwith\\tescapes')
 
+    # SNOW-48: Carriage return escape sequence tests
+    def test_parse_carriage_return_escape_double_quotes(self):
+        """_parse_quoted_value should handle \\r in double-quoted strings."""
+        self.assertEqual(_parse_quoted_value('"line1\\rline2"'), "line1\rline2")
+
+    def test_parse_carriage_return_escape_single_quotes(self):
+        """_parse_quoted_value should handle \\r in single-quoted strings."""
+        self.assertEqual(_parse_quoted_value("'line1\\rline2'"), "line1\rline2")
+
+    def test_parse_crlf_escape_sequence(self):
+        """_parse_quoted_value should handle \\r\\n (CRLF) in quoted strings."""
+        self.assertEqual(_parse_quoted_value('"line1\\r\\nline2"'), "line1\r\nline2")
+
+    def test_parse_carriage_return_with_other_escapes(self):
+        """_parse_quoted_value should handle \\r combined with other escape sequences."""
+        self.assertEqual(
+            _parse_quoted_value('"col1\\tcol2\\r\\nrow2col1\\trow2col2"'),
+            "col1\tcol2\r\nrow2col1\trow2col2"
+        )
+
 
 # =============================================================================
 # Unit Tests - Environment Loading
@@ -370,6 +390,23 @@ SINGLE_QUOTED='single-quoted-value'
             with patch('servicenow_api.load_env_file', return_value={}):
                 config = get_config()
                 self.assertIsNone(config["timeout"])
+
+    # SNOW-48: Timeout warning test
+    def test_get_config_timeout_invalid_value_logs_warning(self):
+        """get_config should log a warning when SERVICENOW_TIMEOUT is invalid."""
+        env_vars = {
+            "SERVICENOW_INSTANCE": "https://test.service-now.com",
+            "SERVICENOW_API_KEY": "key",
+            "SERVICENOW_TIMEOUT": "invalid-timeout"
+        }
+        with patch.dict(os.environ, env_vars, clear=True):
+            with patch('servicenow_api.load_env_file', return_value={}):
+                with patch('servicenow_api.logger') as mock_logger:
+                    config = get_config()
+                    mock_logger.warning.assert_called_once()
+                    warning_call = mock_logger.warning.call_args
+                    self.assertIn("invalid-timeout", str(warning_call))
+                    self.assertIsNone(config["timeout"])
 
     def test_get_config_timeout_not_set(self):
         """get_config should return None timeout when not configured."""

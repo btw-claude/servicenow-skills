@@ -11,11 +11,16 @@ import re
 import sys
 import json
 import base64
+import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, Union
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urljoin, urlparse, urlunparse
+
+
+# Configure logger for this module
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -89,6 +94,7 @@ def _parse_quoted_value(value: str) -> str:
         - \\\\ - escaped backslash
         - \\n - newline
         - \\t - tab
+        - \\r - carriage return
     """
     value = value.strip()
 
@@ -104,6 +110,7 @@ def _parse_quoted_value(value: str) -> str:
         inner = inner.replace('\\"', '"')
         inner = inner.replace('\\n', '\n')
         inner = inner.replace('\\t', '\t')
+        inner = inner.replace('\\r', '\r')
         inner = inner.replace('\x00', '\\')  # Restore backslash
         return inner
 
@@ -116,6 +123,7 @@ def _parse_quoted_value(value: str) -> str:
         inner = inner.replace("\\'", "'")
         inner = inner.replace('\\n', '\n')
         inner = inner.replace('\\t', '\t')
+        inner = inner.replace('\\r', '\r')
         inner = inner.replace('\x00', '\\')  # Restore backslash
         return inner
 
@@ -189,7 +197,10 @@ def get_config() -> Dict[str, Optional[str]]:
         try:
             timeout_value = int(timeout_str)
         except ValueError:
-            pass  # Invalid timeout value, will use default
+            logger.warning(
+                "Invalid SERVICENOW_TIMEOUT value '%s': must be an integer. Using default timeout.",
+                timeout_str
+            )
 
     # Get configuration with env vars taking precedence
     config = {
