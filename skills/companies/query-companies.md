@@ -226,6 +226,8 @@ The `query` parameter accepts ServiceNow encoded query syntax. Common operators:
 | `ON` | On specific date | `sys_created_onON2024-01-15` |
 | `BEFORE` | Before date | `sys_created_onBEFORE2024-01-15` |
 | `AFTER` | After date | `sys_created_onAFTER2024-01-15` |
+| `BETWEEN` | Between dates | `sys_created_onBETWEEN2024-01-01@2024-01-31` |
+| `RELATIVE` | Relative to now | `sys_created_onRELATIVEGE@dayofweek@ago@2` |
 
 ### Dot-Walking (Related Records)
 
