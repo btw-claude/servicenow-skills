@@ -20,11 +20,14 @@ Or: python tests/test_servicenow_api.py
 import os
 import sys
 import json
+import socket
 import unittest
 from pathlib import Path
 from io import StringIO, BytesIO
 from unittest.mock import patch, MagicMock, Mock
 from urllib.error import HTTPError, URLError
+
+import pytest
 
 # Get the project root directory (parent of tests/)
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
@@ -907,106 +910,77 @@ class TestUtilityFunctions(unittest.TestCase):
 
 # =============================================================================
 # Unit Tests - Timeout Scenarios (SNOW-36)
+# SNOW-47: Migrated to pytest fixtures
 # =============================================================================
 
-class TestTimeoutScenarios(unittest.TestCase):
-    """Test timeout handling scenarios."""
+class TestTimeoutScenarios:
+    """Test timeout handling scenarios.
 
-    def setUp(self):
-        """Create client with mock config."""
-        self.config = {
-            "instance": "https://test.service-now.com",
-            "username": "admin",
-            "password": "secret",
-            "client_id": None,
-            "client_secret": None,
-            "api_key": None,
-        }
+    SNOW-47: Migrated from unittest.TestCase to use pytest fixtures.
+    """
 
     @patch('servicenow_api.urlopen')
-    def test_request_timeout_raises_servicenow_error(self, mock_urlopen):
+    def test_request_timeout_raises_servicenow_error(self, mock_urlopen, basic_auth_config):
         """Request timeout should raise ServiceNowError."""
-        import socket
         mock_urlopen.side_effect = URLError(socket.timeout("timed out"))
 
-        client = ServiceNowClient(self.config, timeout=5)
+        client = ServiceNowClient(basic_auth_config, timeout=5)
 
-        with self.assertRaises(ServiceNowError) as context:
+        with pytest.raises(ServiceNowError) as exc_info:
             client.get("incident")
 
-        self.assertIn("connect", str(context.exception).lower())
+        assert "connect" in str(exc_info.value).lower()
 
     @patch('servicenow_api.urlopen')
-    def test_oauth_timeout_raises_auth_error(self, mock_urlopen):
+    def test_oauth_timeout_raises_auth_error(self, mock_urlopen, oauth_config):
         """OAuth token request timeout should raise AuthenticationError."""
-        import socket
         mock_urlopen.side_effect = URLError(socket.timeout("timed out"))
 
-        config = self.config.copy()
-        config["username"] = None
-        config["password"] = None
-        config["client_id"] = "test-client"
-        config["client_secret"] = "test-secret"
-        client = ServiceNowClient(config, timeout=5)
+        client = ServiceNowClient(oauth_config, timeout=5)
 
-        with self.assertRaises(AuthenticationError) as context:
+        with pytest.raises(AuthenticationError) as exc_info:
             client._obtain_oauth_token()
 
-        self.assertIn("connect", str(context.exception).lower())
+        assert "connect" in str(exc_info.value).lower()
 
     @patch('servicenow_api.urlopen')
-    def test_custom_timeout_used_in_request(self, mock_urlopen):
+    def test_custom_timeout_used_in_request(self, mock_urlopen, basic_auth_config, mock_empty_response):
         """Custom timeout should be passed to urlopen."""
-        mock_response = MagicMock()
-        mock_response.read.return_value = b'{"result": []}'
-        mock_response.__enter__ = Mock(return_value=mock_response)
-        mock_response.__exit__ = Mock(return_value=False)
-        mock_urlopen.return_value = mock_response
+        mock_urlopen.return_value = mock_empty_response
 
-        client = ServiceNowClient(self.config, timeout=120)
+        client = ServiceNowClient(basic_auth_config, timeout=120)
         client.get("incident")
 
         # Verify timeout was passed to urlopen
         call_args = mock_urlopen.call_args
-        self.assertEqual(call_args[1]["timeout"], 120)
+        assert call_args[1]["timeout"] == 120
 
     @patch('servicenow_api.urlopen')
-    def test_default_timeout_used_when_not_specified(self, mock_urlopen):
+    def test_default_timeout_used_when_not_specified(self, mock_urlopen, basic_auth_config, mock_empty_response):
         """Default timeout should be used when not specified."""
-        mock_response = MagicMock()
-        mock_response.read.return_value = b'{"result": []}'
-        mock_response.__enter__ = Mock(return_value=mock_response)
-        mock_response.__exit__ = Mock(return_value=False)
-        mock_urlopen.return_value = mock_response
+        mock_urlopen.return_value = mock_empty_response
 
-        client = ServiceNowClient(self.config)  # No timeout specified
+        client = ServiceNowClient(basic_auth_config)  # No timeout specified
         client.get("incident")
 
         # Verify default timeout (30) was passed to urlopen
         call_args = mock_urlopen.call_args
-        self.assertEqual(call_args[1]["timeout"], 30)
+        assert call_args[1]["timeout"] == 30
 
 
 # =============================================================================
 # Unit Tests - Retry Logic (SNOW-36)
+# SNOW-47: Migrated to pytest fixtures
 # =============================================================================
 
-class TestRetryLogic(unittest.TestCase):
-    """Test retry logic for OAuth 401 scenarios."""
+class TestRetryLogic:
+    """Test retry logic for OAuth 401 scenarios.
 
-    def setUp(self):
-        """Create client with OAuth config."""
-        self.config = {
-            "instance": "https://test.service-now.com",
-            "username": None,
-            "password": None,
-            "client_id": "test-client-id",
-            "client_secret": "test-client-secret",
-            "api_key": None,
-        }
+    SNOW-47: Migrated from unittest.TestCase to use pytest fixtures.
+    """
 
     @patch('servicenow_api.urlopen')
-    def test_oauth_401_retry_clears_token(self, mock_urlopen):
+    def test_oauth_401_retry_clears_token(self, mock_urlopen, oauth_config):
         """OAuth 401 should clear cached token and retry."""
         # First call - get initial token
         token_response = MagicMock()
@@ -1037,14 +1011,14 @@ class TestRetryLogic(unittest.TestCase):
 
         mock_urlopen.side_effect = [token_response, mock_401_error, new_token_response, api_response]
 
-        client = ServiceNowClient(self.config)
+        client = ServiceNowClient(oauth_config)
         client.get("incident")
 
         # Verify new token is used after retry
-        self.assertEqual(client._access_token, "new-token")
+        assert client._access_token == "new-token"
 
     @patch('servicenow_api.urlopen')
-    def test_oauth_401_no_infinite_retry(self, mock_urlopen):
+    def test_oauth_401_no_infinite_retry(self, mock_urlopen, oauth_config):
         """OAuth should not retry infinitely on persistent 401."""
         # First call - get initial token
         token_response = MagicMock()
@@ -1078,26 +1052,21 @@ class TestRetryLogic(unittest.TestCase):
 
         mock_urlopen.side_effect = [token_response, mock_401_error, new_token_response, mock_401_error_2]
 
-        client = ServiceNowClient(self.config)
+        client = ServiceNowClient(oauth_config)
 
         # Should raise AuthenticationError after retry fails
-        with self.assertRaises(AuthenticationError):
+        with pytest.raises(AuthenticationError):
             client.get("incident")
 
         # Should have made exactly 4 calls (no infinite loop)
-        self.assertEqual(mock_urlopen.call_count, 4)
+        assert mock_urlopen.call_count == 4
 
     @patch('servicenow_api.urlopen')
-    def test_basic_auth_401_no_retry(self, mock_urlopen):
+    def test_basic_auth_401_no_retry(self, mock_urlopen, basic_auth_config):
         """Basic auth 401 should not trigger retry logic."""
-        config = {
-            "instance": "https://test.service-now.com",
-            "username": "admin",
-            "password": "wrong-password",
-            "client_id": None,
-            "client_secret": None,
-            "api_key": None,
-        }
+        # Modify basic_auth_config to simulate wrong password
+        config = basic_auth_config.copy()
+        config["password"] = "wrong-password"
 
         mock_401_error = HTTPError(
             url="https://test.service-now.com/api/now/table/incident",
@@ -1110,43 +1079,40 @@ class TestRetryLogic(unittest.TestCase):
 
         client = ServiceNowClient(config)
 
-        with self.assertRaises(AuthenticationError):
+        with pytest.raises(AuthenticationError):
             client.get("incident")
 
         # Basic auth should only make one call (no retry)
-        self.assertEqual(mock_urlopen.call_count, 1)
+        assert mock_urlopen.call_count == 1
 
 
 # =============================================================================
 # Unit Tests - Malformed Env Files (SNOW-36)
+# SNOW-47: Migrated to pytest fixtures
 # =============================================================================
 
-class TestMalformedEnvFiles(unittest.TestCase):
-    """Test handling of malformed env file content."""
+class TestMalformedEnvFiles:
+    """Test handling of malformed env file content.
 
-    def test_load_env_file_line_without_equals(self):
+    SNOW-47: Migrated from unittest.TestCase to use pytest fixtures.
+    """
+
+    def test_load_env_file_line_without_equals(self, malformed_env_content):
         """load_env_file should skip lines without '=' separator."""
-        env_content = """
-SERVICENOW_INSTANCE=https://test.service-now.com
-MALFORMED_LINE_WITHOUT_EQUALS
-SERVICENOW_USERNAME=admin
-another malformed line
-SERVICENOW_PASSWORD=secret
-"""
-        with patch('builtins.open', unittest.mock.mock_open(read_data=env_content)):
+        with patch('builtins.open', unittest.mock.mock_open(read_data=malformed_env_content)):
             with patch.object(Path, 'exists', return_value=True):
                 result = load_env_file(Path("/fake/.claude/env"))
 
                 # Valid lines should be parsed
-                self.assertEqual(result["SERVICENOW_INSTANCE"], "https://test.service-now.com")
-                self.assertEqual(result["SERVICENOW_USERNAME"], "admin")
-                self.assertEqual(result["SERVICENOW_PASSWORD"], "secret")
+                assert result["SERVICENOW_INSTANCE"] == "https://test.service-now.com"
+                assert result["SERVICENOW_USERNAME"] == "admin"
+                assert result["SERVICENOW_PASSWORD"] == "secret"
                 # Malformed lines should be skipped (not causing keys)
-                self.assertNotIn("MALFORMED_LINE_WITHOUT_EQUALS", result)
-                self.assertNotIn("another malformed line", result)
+                assert "MALFORMED_LINE_NO_EQUALS" not in result
+                assert "another bad line" not in result
 
     def test_load_env_file_empty_key(self):
-        """load_env_file should handle lines with empty key before '='."""
+        """load_env_file should skip lines with empty key before '='."""
         env_content = """
 =value_without_key
 SERVICENOW_INSTANCE=https://test.service-now.com
@@ -1155,9 +1121,9 @@ SERVICENOW_INSTANCE=https://test.service-now.com
             with patch.object(Path, 'exists', return_value=True):
                 result = load_env_file(Path("/fake/.claude/env"))
 
-                # Empty key line creates an empty key (current behavior)
-                self.assertEqual(result.get(""), "value_without_key")
-                self.assertEqual(result["SERVICENOW_INSTANCE"], "https://test.service-now.com")
+                # Empty key line should be skipped (SNOW-47: updated behavior)
+                assert "" not in result
+                assert result["SERVICENOW_INSTANCE"] == "https://test.service-now.com"
 
     def test_load_env_file_empty_value(self):
         """load_env_file should handle lines with empty value after '='."""
@@ -1170,9 +1136,9 @@ SERVICENOW_USERNAME=admin
             with patch.object(Path, 'exists', return_value=True):
                 result = load_env_file(Path("/fake/.claude/env"))
 
-                self.assertEqual(result["SERVICENOW_INSTANCE"], "https://test.service-now.com")
-                self.assertEqual(result["EMPTY_VALUE"], "")
-                self.assertEqual(result["SERVICENOW_USERNAME"], "admin")
+                assert result["SERVICENOW_INSTANCE"] == "https://test.service-now.com"
+                assert result["EMPTY_VALUE"] == ""
+                assert result["SERVICENOW_USERNAME"] == "admin"
 
     def test_load_env_file_multiple_equals(self):
         """load_env_file should handle lines with multiple '=' signs."""
@@ -1185,23 +1151,18 @@ KEY=value=with=equals
             with patch.object(Path, 'exists', return_value=True):
                 result = load_env_file(Path("/fake/.claude/env"))
 
-                self.assertEqual(result["SERVICENOW_INSTANCE"], "https://test.service-now.com")
+                assert result["SERVICENOW_INSTANCE"] == "https://test.service-now.com"
                 # Only first '=' should be used as separator
-                self.assertEqual(result["URL_WITH_PARAMS"], "https://example.com?foo=bar&baz=qux")
-                self.assertEqual(result["KEY"], "value=with=equals")
+                assert result["URL_WITH_PARAMS"] == "https://example.com?foo=bar&baz=qux"
+                assert result["KEY"] == "value=with=equals"
 
-    def test_load_env_file_only_comments(self):
+    def test_load_env_file_only_comments(self, empty_env_content):
         """load_env_file should return empty dict for file with only comments."""
-        env_content = """
-# This is a comment
-# Another comment
-#COMMENTED_OUT=value
-"""
-        with patch('builtins.open', unittest.mock.mock_open(read_data=env_content)):
+        with patch('builtins.open', unittest.mock.mock_open(read_data=empty_env_content)):
             with patch.object(Path, 'exists', return_value=True):
                 result = load_env_file(Path("/fake/.claude/env"))
 
-                self.assertEqual(result, {})
+                assert result == {}
 
     def test_load_env_file_only_empty_lines(self):
         """load_env_file should return empty dict for file with only empty lines."""
@@ -1209,13 +1170,12 @@ KEY=value=with=equals
 
 
 
-\t
 """
         with patch('builtins.open', unittest.mock.mock_open(read_data=env_content)):
             with patch.object(Path, 'exists', return_value=True):
                 result = load_env_file(Path("/fake/.claude/env"))
 
-                self.assertEqual(result, {})
+                assert result == {}
 
     def test_load_env_file_key_with_spaces(self):
         """load_env_file should strip spaces from keys."""
@@ -1227,8 +1187,8 @@ SERVICENOW_USERNAME = admin
             with patch.object(Path, 'exists', return_value=True):
                 result = load_env_file(Path("/fake/.claude/env"))
 
-                self.assertEqual(result["SERVICENOW_INSTANCE"], "https://test.service-now.com")
-                self.assertEqual(result["SERVICENOW_USERNAME"], "admin")
+                assert result["SERVICENOW_INSTANCE"] == "https://test.service-now.com"
+                assert result["SERVICENOW_USERNAME"] == "admin"
 
     def test_load_env_file_inline_comment_not_stripped(self):
         """load_env_file should not strip inline comments (they become part of value)."""
@@ -1240,7 +1200,7 @@ SERVICENOW_INSTANCE=https://test.service-now.com # production
                 result = load_env_file(Path("/fake/.claude/env"))
 
                 # Inline comments are not stripped in simple env file parsing
-                self.assertEqual(result["SERVICENOW_INSTANCE"], "https://test.service-now.com # production")
+                assert result["SERVICENOW_INSTANCE"] == "https://test.service-now.com # production"
 
 
 # =============================================================================

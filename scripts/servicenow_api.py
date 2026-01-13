@@ -156,6 +156,9 @@ def load_env_file(env_path: Optional[Path] = None) -> Dict[str, str]:
                     if "=" in line:
                         key, _, value = line.partition("=")
                         key = key.strip()
+                        # SNOW-47: Skip lines where the key is empty
+                        if not key:
+                            continue
                         value = _parse_quoted_value(value)
                         env_vars[key] = value
             break  # Use first found env file
