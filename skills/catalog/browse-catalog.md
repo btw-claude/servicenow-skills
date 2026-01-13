@@ -228,6 +228,11 @@ JSON array of item records:
 
 Returns an empty array `[]` if no records match the criteria.
 
+## Related Documentation
+
+- [Search Catalog](search-catalog.md) - For text-based searching of categories and items by name or description
+- [Request Status](request-status.md) - For checking the status of submitted catalog requests
+
 ## Errors
 
 The script will output error details to stderr and exit with non-zero status if:

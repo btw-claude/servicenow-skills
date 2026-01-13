@@ -252,7 +252,7 @@ JSON object containing the request and optionally its items:
       "link": "https://instance.service-now.com/api/now/table/sys_user/def456",
       "value": "def456"
     },
-    "opened_at": "2024-01-15 10:30:00",
+    "opened_at": "<timestamp>",
     "active": "true",
     "price": "1550"
   },
@@ -307,6 +307,11 @@ JSON array of request records:
 ```
 
 Returns an empty array `[]` if no requests match the query criteria.
+
+## Related Documentation
+
+- [Browse Catalog](browse-catalog.md) - For browsing catalog categories and items
+- [Search Catalog](search-catalog.md) - For text-based searching of categories and items
 
 ## Errors
 
