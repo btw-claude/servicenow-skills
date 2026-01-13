@@ -3,7 +3,7 @@
 ServiceNow CMDB Operations Module
 
 Provides Configuration Management Database (CMDB) operations for ServiceNow.
-Actions: get, query, search, relationships, by_ip, by_serial
+Actions: get, get_by_name, query, search, relationships, by_ip, by_serial
 Tables: cmdb_ci, cmdb_rel_ci
 Query params: ci_class, operational_status, location
 """
@@ -12,6 +12,7 @@ import sys
 from typing import Any, Dict, List, Optional
 
 from servicenow_api import (
+    NotFoundError,
     ServiceNowClient,
     ServiceNowError,
     ValidationError,
@@ -122,6 +123,59 @@ def get_ci(
     )
 
     return result.get("result", {})
+
+
+def get_ci_by_name(
+    client: ServiceNowClient,
+    name: str,
+    ci_class: Optional[str] = None,
+    fields: Optional[str] = None,
+    display_value: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Retrieve a single Configuration Item by name.
+
+    Args:
+        client: ServiceNow API client.
+        name: The name of the CI to retrieve.
+        ci_class: Optional filter by CI class name.
+        fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_FIELDS if not specified.
+        display_value: Optional display value setting ('true', 'false', 'all').
+
+    Returns:
+        Dictionary containing the CI record.
+
+    Raises:
+        ValidationError: If name is not provided.
+        NotFoundError: If CI with the given name is not found.
+    """
+    if not name:
+        raise ValidationError("name is required for get_by_name action")
+
+    query_parts = [f"name={name}"]
+
+    # Add CI class filter if provided
+    if ci_class is not None:
+        query_parts.append(f"sys_class_name={ci_class}")
+
+    full_query = "^".join(query_parts)
+
+    # Use DEFAULT_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
+
+    result = client.get(
+        table=TABLE_NAME,
+        query=full_query,
+        fields=effective_fields,
+        limit=1,
+        display_value=display_value,
+    )
+
+    records = result.get("result", [])
+    if not records:
+        raise NotFoundError(f"CI with name '{name}' not found")
+    return records[0]
 
 
 def query_cis(
@@ -440,7 +494,7 @@ def dispatch_action(params: Dict[str, Any]) -> Any:
 
     if not action:
         raise ValidationError(
-            "action is required. Valid actions: get, query, search, relationships, by_ip, by_serial"
+            "action is required. Valid actions: get, get_by_name, query, search, relationships, by_ip, by_serial"
         )
 
     # Create client
@@ -455,6 +509,15 @@ def dispatch_action(params: Dict[str, Any]) -> Any:
         return get_ci(
             client=client,
             sys_id=sys_id,
+            fields=fields,
+            display_value=display_value,
+        )
+
+    elif action == "get_by_name":
+        return get_ci_by_name(
+            client=client,
+            name=params.get("name"),
+            ci_class=params.get("ci_class"),
             fields=fields,
             display_value=display_value,
         )
@@ -517,7 +580,7 @@ def dispatch_action(params: Dict[str, Any]) -> Any:
 
     else:
         raise ValidationError(
-            f"Invalid action: {action}. Valid actions: get, query, search, relationships, by_ip, by_serial"
+            f"Invalid action: {action}. Valid actions: get, get_by_name, query, search, relationships, by_ip, by_serial"
         )
 
 
