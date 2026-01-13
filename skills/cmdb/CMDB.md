@@ -67,3 +67,62 @@ echo '{"action": "query", "ci_class": "cmdb_ci_server"}' | python scripts/cmdb.p
 ```bash
 echo '{"action": "relationships", "sys_id": "abc123"}' | python scripts/cmdb.py
 ```
+
+## Default Fields
+
+When no `fields` parameter is specified, CMDB operations return a standard set of fields.
+
+### CI Default Fields (DEFAULT_FIELDS)
+
+The following fields are returned by default for CI operations (`get`, `get_by_name`, `query`, `search`, `by_ip`, `by_serial`):
+
+- `sys_id` - Unique system identifier
+- `name` - CI name
+- `sys_class_name` - CI class
+- `asset_tag` - Asset tag
+- `serial_number` - Serial number
+- `ip_address` - IP address
+- `mac_address` - MAC address
+- `dns_domain` - DNS domain
+- `fqdn` - Fully qualified domain name
+- `operational_status` - Operational status
+- `install_status` - Installation status
+- `location` - Location
+- `department` - Department
+- `company` - Company
+- `assigned_to` - Assigned user
+- `managed_by` - Managed by user
+- `owned_by` - Owner
+- `supported_by` - Support group
+- `manufacturer` - Manufacturer
+- `model_id` - Model reference
+- `model_number` - Model number
+- `vendor` - Vendor
+- `cost` - Cost
+- `cost_center` - Cost center
+- `purchase_date` - Purchase date
+- `warranty_expiration` - Warranty expiration date
+- `first_discovered` - First discovery timestamp
+- `last_discovered` - Last discovery timestamp
+- `discovery_source` - Discovery source
+- `environment` - Environment
+- `short_description` - Brief description
+- `comments` - Additional comments
+- `active` - Whether the CI is active
+- `sys_created_on` - Record creation timestamp
+- `sys_updated_on` - Record last update timestamp
+
+### Relationship Default Fields (RELATIONSHIP_FIELDS)
+
+The following fields are returned by default for the `relationships` action:
+
+- `sys_id` - Unique system identifier for the relationship
+- `parent` - Reference to the parent CI
+- `child` - Reference to the child CI
+- `type` - Reference to the relationship type
+- `connection_strength` - Strength of the relationship connection
+- `port` - Port information (if applicable)
+- `sys_created_on` - Record creation timestamp
+- `sys_updated_on` - Record last update timestamp
+
+To customize the fields returned, use the `fields` parameter with a comma-separated list of field names.
