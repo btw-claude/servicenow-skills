@@ -656,6 +656,253 @@ class TestCompaniesScript(unittest.TestCase):
         self.assertIn("search", docstring)
         self.assertIn("latest", docstring)
 
+    # =========================================================================
+    # SNOW-45: Edge case tests for empty result handling
+    # =========================================================================
+
+    def test_companies_get_by_name_returns_empty_dict_when_not_found(self):
+        """companies.py get_by_name should return empty dict when company not found."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            result = self.dispatch_action({
+                "action": "get_by_name",
+                "name": "Nonexistent Company XYZ123"
+            })
+
+            self.assertEqual(result, {})
+            self.assertIsInstance(result, dict)
+
+    def test_companies_query_returns_empty_list_when_no_matches(self):
+        """companies.py query should return empty list when no companies match."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            result = self.dispatch_action({
+                "action": "query",
+                "name": "Nonexistent",
+                "city": "NowhereCity",
+                "country": "NoCountry"
+            })
+
+            self.assertEqual(result, [])
+            self.assertIsInstance(result, list)
+
+    def test_companies_search_returns_empty_list_when_no_matches(self):
+        """companies.py search should return empty list when no companies match."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            result = self.dispatch_action({
+                "action": "search",
+                "search_term": "ZZZNonexistentCompany999"
+            })
+
+            self.assertEqual(result, [])
+            self.assertIsInstance(result, list)
+
+    def test_companies_latest_returns_empty_list_when_no_companies(self):
+        """companies.py latest should return empty list when no companies exist."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            result = self.dispatch_action({
+                "action": "latest",
+                "limit": 10
+            })
+
+            self.assertEqual(result, [])
+            self.assertIsInstance(result, list)
+
+    def test_companies_query_handles_missing_result_key(self):
+        """companies.py query should handle API response missing 'result' key."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {}  # No 'result' key
+            mock_client.return_value = mock_instance
+
+            result = self.dispatch_action({
+                "action": "query",
+                "active": True
+            })
+
+            self.assertEqual(result, [])
+            self.assertIsInstance(result, list)
+
+    def test_companies_get_by_name_handles_missing_result_key(self):
+        """companies.py get_by_name should handle API response missing 'result' key."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {}  # No 'result' key
+            mock_client.return_value = mock_instance
+
+            result = self.dispatch_action({
+                "action": "get_by_name",
+                "name": "Test Company"
+            })
+
+            self.assertEqual(result, {})
+            self.assertIsInstance(result, dict)
+
+    # =========================================================================
+    # SNOW-45: Negative tests for search action with special characters
+    # =========================================================================
+
+    def test_companies_search_with_sql_injection_characters(self):
+        """companies.py search should handle SQL injection-like special characters."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            # Test with SQL injection-like characters
+            result = self.dispatch_action({
+                "action": "search",
+                "search_term": "'; DROP TABLE companies;--"
+            })
+
+            self.assertIsInstance(result, list)
+            # Verify the client.get was called (search was processed)
+            mock_instance.get.assert_called_once()
+
+    def test_companies_search_with_special_regex_characters(self):
+        """companies.py search should handle regex special characters."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            # Test with regex special characters
+            result = self.dispatch_action({
+                "action": "search",
+                "search_term": "Company.*[test]+(abc|def)$^"
+            })
+
+            self.assertIsInstance(result, list)
+            mock_instance.get.assert_called_once()
+
+    def test_companies_search_with_unicode_characters(self):
+        """companies.py search should handle unicode and international characters."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            # Test with unicode characters
+            result = self.dispatch_action({
+                "action": "search",
+                "search_term": "Företag AB 日本企業 Société"
+            })
+
+            self.assertIsInstance(result, list)
+            mock_instance.get.assert_called_once()
+
+    def test_companies_search_with_html_script_tags(self):
+        """companies.py search should handle HTML/script injection characters."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            # Test with HTML/script characters
+            result = self.dispatch_action({
+                "action": "search",
+                "search_term": "<script>alert('xss')</script>"
+            })
+
+            self.assertIsInstance(result, list)
+            mock_instance.get.assert_called_once()
+
+    def test_companies_search_with_newlines_and_tabs(self):
+        """companies.py search should handle newlines and tab characters."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            # Test with newlines and tabs
+            result = self.dispatch_action({
+                "action": "search",
+                "search_term": "Company\nName\tWith\rWhitespace"
+            })
+
+            self.assertIsInstance(result, list)
+            mock_instance.get.assert_called_once()
+
+    def test_companies_search_with_servicenow_query_operators(self):
+        """companies.py search should handle ServiceNow query operator characters."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            # Test with ServiceNow encoded query characters
+            result = self.dispatch_action({
+                "action": "search",
+                "search_term": "name^ORcity^NQactive=true"
+            })
+
+            self.assertIsInstance(result, list)
+            mock_instance.get.assert_called_once()
+
+    def test_companies_search_with_very_long_search_term(self):
+        """companies.py search should handle very long search terms."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            # Test with a very long search term (1000 characters)
+            long_term = "A" * 1000
+            result = self.dispatch_action({
+                "action": "search",
+                "search_term": long_term
+            })
+
+            self.assertIsInstance(result, list)
+            mock_instance.get.assert_called_once()
+
+    def test_companies_search_with_only_whitespace_processes_request(self):
+        """companies.py search should process whitespace-only search term (current behavior)."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            # Note: Current implementation does not strip whitespace
+            # A whitespace-only string passes the 'if not search_term' check
+            result = self.dispatch_action({
+                "action": "search",
+                "search_term": "   "
+            })
+
+            self.assertIsInstance(result, list)
+            mock_instance.get.assert_called_once()
+
+    def test_companies_search_with_null_bytes(self):
+        """companies.py search should handle null byte characters."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            # Test with null bytes
+            result = self.dispatch_action({
+                "action": "search",
+                "search_term": "Company\x00Name"
+            })
+
+            self.assertIsInstance(result, list)
+            mock_instance.get.assert_called_once()
+
 
 class TestServiceNowApiModule(unittest.TestCase):
     """Test servicenow_api.py base module."""
