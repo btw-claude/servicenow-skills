@@ -3,7 +3,7 @@
 ServiceNow Service Catalog Operations Module
 
 Provides service catalog management operations for ServiceNow.
-Actions: categories, items, search, status, query_requests
+Actions: get_category, get_item, categories, items, search, status, query_requests
 Tables: sc_category, sc_cat_item, sc_request, sc_req_item
 """
 
@@ -11,6 +11,7 @@ import sys
 from typing import Any, Dict, List, Optional
 
 from servicenow_api import (
+    NotFoundError,
     ServiceNowClient,
     ServiceNowError,
     ValidationError,
@@ -106,6 +107,90 @@ DEFAULT_REQ_ITEM_FIELDS = [
 # =============================================================================
 # Catalog Operations
 # =============================================================================
+
+def get_category(
+    client: ServiceNowClient,
+    sys_id: str,
+    fields: Optional[str] = None,
+    display_value: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Retrieve a single catalog category by sys_id.
+
+    Args:
+        client: ServiceNow API client.
+        sys_id: The sys_id of the category to retrieve.
+        fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_CATEGORY_FIELDS if not specified.
+        display_value: Optional display value setting ('true', 'false', 'all').
+
+    Returns:
+        Dictionary containing the category record.
+
+    Raises:
+        ValidationError: If sys_id is not provided.
+        NotFoundError: If category is not found.
+    """
+    if not sys_id:
+        raise ValidationError("sys_id is required for get_category action")
+
+    # Use DEFAULT_CATEGORY_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_CATEGORY_FIELDS)
+
+    result = client.get(
+        table=TABLE_CATEGORY,
+        sys_id=sys_id,
+        fields=effective_fields,
+        display_value=display_value,
+    )
+
+    record = result.get("result", {})
+    if not record:
+        raise NotFoundError(f"Category with sys_id '{sys_id}' not found")
+    return record
+
+
+def get_item(
+    client: ServiceNowClient,
+    sys_id: str,
+    fields: Optional[str] = None,
+    display_value: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Retrieve a single catalog item by sys_id.
+
+    Args:
+        client: ServiceNow API client.
+        sys_id: The sys_id of the catalog item to retrieve.
+        fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_ITEM_FIELDS if not specified.
+        display_value: Optional display value setting ('true', 'false', 'all').
+
+    Returns:
+        Dictionary containing the catalog item record.
+
+    Raises:
+        ValidationError: If sys_id is not provided.
+        NotFoundError: If catalog item is not found.
+    """
+    if not sys_id:
+        raise ValidationError("sys_id is required for get_item action")
+
+    # Use DEFAULT_ITEM_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_ITEM_FIELDS)
+
+    result = client.get(
+        table=TABLE_CAT_ITEM,
+        sys_id=sys_id,
+        fields=effective_fields,
+        display_value=display_value,
+    )
+
+    record = result.get("result", {})
+    if not record:
+        raise NotFoundError(f"Catalog item with sys_id '{sys_id}' not found")
+    return record
+
 
 def get_categories(
     client: ServiceNowClient,
@@ -489,7 +574,7 @@ def dispatch_action(params: Dict[str, Any]) -> Any:
 
     if not action:
         raise ValidationError(
-            "action is required. Valid actions: categories, items, search, status, query_requests"
+            "action is required. Valid actions: get_category, get_item, categories, items, search, status, query_requests"
         )
 
     # Create client
@@ -499,7 +584,23 @@ def dispatch_action(params: Dict[str, Any]) -> Any:
     fields = params.get("fields")
     display_value = params.get("display_value")
 
-    if action == "categories":
+    if action == "get_category":
+        return get_category(
+            client=client,
+            sys_id=params.get("sys_id"),
+            fields=fields,
+            display_value=display_value,
+        )
+
+    elif action == "get_item":
+        return get_item(
+            client=client,
+            sys_id=params.get("sys_id"),
+            fields=fields,
+            display_value=display_value,
+        )
+
+    elif action == "categories":
         return get_categories(
             client=client,
             parent=params.get("parent"),
@@ -565,7 +666,7 @@ def dispatch_action(params: Dict[str, Any]) -> Any:
 
     else:
         raise ValidationError(
-            f"Invalid action: {action}. Valid actions: categories, items, search, status, query_requests"
+            f"Invalid action: {action}. Valid actions: get_category, get_item, categories, items, search, status, query_requests"
         )
 
 
