@@ -2,6 +2,8 @@
 
 Retrieve problem details from ServiceNow by sys_id or problem number.
 
+> **Navigation:** [Back to Skill Index](../../SKILL.md) | [Query Problems](./query-problems.md)
+
 ## Script
 
 ```bash
@@ -105,7 +107,7 @@ Specify which fields to include in the response. Common problem fields:
 - `first_reported_by_task` - First task that reported this problem
 - `cause_notes` - Root cause analysis notes
 - `fix_notes` - Fix/resolution notes
-- `workaround` - Workaround description
+- `workaround` - Workaround description (see [Workaround Best Practices](#workaround-best-practices) below)
 - `major_problem` - Whether this is a major problem
 - `resolution_code` - Resolution code
 - `related_incidents` - Related incident count
@@ -148,6 +150,39 @@ JSON object containing the problem record:
   "related_incidents": "5"
 }
 ```
+
+## Workaround Best Practices
+
+The `workaround` field is critical for Known Error management. Follow these best practices when documenting workarounds:
+
+1. **Be Specific and Actionable**: Write clear, step-by-step instructions that users or support staff can follow immediately.
+
+2. **Include Prerequisites**: Note any permissions, tools, or access required to execute the workaround.
+
+3. **Document Limitations**: Clearly state what the workaround does and doesn't address, and any potential side effects.
+
+4. **Keep It Updated**: Regularly review and update workarounds as new information becomes available or the underlying issue evolves.
+
+5. **Link to Knowledge Articles**: If a detailed KB article exists, reference it in the workaround field for comprehensive guidance.
+
+**Example of a well-documented workaround:**
+```
+Temporary fix for email delivery delays:
+1. Clear the user's Outlook cache: File > Options > Advanced > Clear Cache
+2. Restart Outlook
+3. Wait 5 minutes for sync to complete
+Note: This resolves 80% of reported cases. If issue persists, escalate to Email Team.
+Limitation: Does not address root cause (mail server queue overflow during peak hours).
+```
+
+## Related Skills
+
+Problems are often linked to incidents. Use these related skills to work with associated records:
+
+- **[Get Incident](../incidents/get-incident.md)** - Retrieve details of incidents related to this problem
+- **[Query Incidents](../incidents/query-incidents.md)** - Search for incidents that may be associated with the problem
+
+> **Tip:** Use the `related_incidents` field to see how many incidents are linked to a problem, then use the incidents skill to investigate them further.
 
 ## Errors
 

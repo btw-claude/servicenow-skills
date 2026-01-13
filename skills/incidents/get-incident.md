@@ -2,6 +2,8 @@
 
 Retrieve incident details from ServiceNow by sys_id or incident number.
 
+> **Navigation:** [Back to Skill Index](../../SKILL.md) | [Query Incidents](./query-incidents.md)
+
 ## Script
 
 ```bash
@@ -147,6 +149,13 @@ JSON object containing the incident record:
   "active": "true"
 }
 ```
+
+## Related Skills
+
+Incidents are often linked to problems for root cause analysis. Use these related skills:
+
+- **[Get Problem](../problems/get-problem.md)** - Retrieve details of problems that may be the root cause
+- **[Query Problems](../problems/query-problems.md)** - Search for known problems related to this incident
 
 ## Errors
 
