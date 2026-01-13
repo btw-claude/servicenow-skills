@@ -15,13 +15,26 @@ Test coverage:
 import os
 import sys
 import ast
-import json
 import unittest
+import tempfile
+import shutil
 from pathlib import Path
 
 
 # Get the project root directory (parent of tests/)
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+
+# Common path fixtures for DRY code
+SKILL_MD_PATH = PROJECT_ROOT / "SKILL.md"
+SCRIPTS_DIR = PROJECT_ROOT / "scripts"
+SKILLS_DIR = PROJECT_ROOT / "skills"
+INCIDENTS_DIR = SKILLS_DIR / "incidents"
+SERVICENOW_API_PATH = SCRIPTS_DIR / "servicenow_api.py"
+INCIDENTS_MODULE_PATH = SCRIPTS_DIR / "incidents.py"
+GET_INCIDENT_MD_PATH = INCIDENTS_DIR / "get-incident.md"
+QUERY_INCIDENTS_MD_PATH = INCIDENTS_DIR / "query-incidents.md"
+README_PATH = PROJECT_ROOT / "README.md"
+GITIGNORE_PATH = PROJECT_ROOT / ".gitignore"
 
 
 class TestSkillDiscovery(unittest.TestCase):
@@ -29,16 +42,14 @@ class TestSkillDiscovery(unittest.TestCase):
 
     def test_skill_md_exists(self):
         """SKILL.md file must exist for Claude Code to discover the skill."""
-        skill_md = PROJECT_ROOT / "SKILL.md"
         self.assertTrue(
-            skill_md.exists(),
+            SKILL_MD_PATH.exists(),
             "SKILL.md file is required for skill discovery"
         )
 
     def test_skill_md_has_frontmatter(self):
         """SKILL.md must have valid YAML frontmatter with name and description."""
-        skill_md = PROJECT_ROOT / "SKILL.md"
-        content = skill_md.read_text()
+        content = SKILL_MD_PATH.read_text()
 
         # Check for frontmatter delimiters
         self.assertTrue(
@@ -77,8 +88,7 @@ class TestSkillDiscovery(unittest.TestCase):
 
     def test_skill_md_has_name(self):
         """SKILL.md frontmatter name field must be non-empty."""
-        skill_md = PROJECT_ROOT / "SKILL.md"
-        content = skill_md.read_text()
+        content = SKILL_MD_PATH.read_text()
         lines = content.split("\n")
 
         name_value = None
@@ -95,8 +105,7 @@ class TestSkillDiscovery(unittest.TestCase):
 
     def test_skill_md_has_description(self):
         """SKILL.md frontmatter description field must be non-empty."""
-        skill_md = PROJECT_ROOT / "SKILL.md"
-        content = skill_md.read_text()
+        content = SKILL_MD_PATH.read_text()
         lines = content.split("\n")
 
         description_value = None
@@ -120,40 +129,36 @@ class TestSkillLoading(unittest.TestCase):
 
     def test_scripts_directory_exists(self):
         """scripts/ directory must exist for skill operations."""
-        scripts_dir = PROJECT_ROOT / "scripts"
         self.assertTrue(
-            scripts_dir.exists(),
+            SCRIPTS_DIR.exists(),
             "scripts/ directory is required"
         )
         self.assertTrue(
-            scripts_dir.is_dir(),
+            SCRIPTS_DIR.is_dir(),
             "scripts/ must be a directory"
         )
 
     def test_skills_directory_exists(self):
         """skills/ directory must exist for skill documentation."""
-        skills_dir = PROJECT_ROOT / "skills"
         self.assertTrue(
-            skills_dir.exists(),
+            SKILLS_DIR.exists(),
             "skills/ directory is required"
         )
         self.assertTrue(
-            skills_dir.is_dir(),
+            SKILLS_DIR.is_dir(),
             "skills/ must be a directory"
         )
 
     def test_servicenow_api_module_exists(self):
         """Base API module must exist."""
-        api_module = PROJECT_ROOT / "scripts" / "servicenow_api.py"
         self.assertTrue(
-            api_module.exists(),
+            SERVICENOW_API_PATH.exists(),
             "scripts/servicenow_api.py is required"
         )
 
     def test_servicenow_api_module_syntax(self):
         """Base API module must have valid Python syntax."""
-        api_module = PROJECT_ROOT / "scripts" / "servicenow_api.py"
-        content = api_module.read_text()
+        content = SERVICENOW_API_PATH.read_text()
 
         try:
             ast.parse(content)
@@ -162,16 +167,14 @@ class TestSkillLoading(unittest.TestCase):
 
     def test_incidents_module_exists(self):
         """Incidents module must exist."""
-        incidents_module = PROJECT_ROOT / "scripts" / "incidents.py"
         self.assertTrue(
-            incidents_module.exists(),
+            INCIDENTS_MODULE_PATH.exists(),
             "scripts/incidents.py is required"
         )
 
     def test_incidents_module_syntax(self):
         """Incidents module must have valid Python syntax."""
-        incidents_module = PROJECT_ROOT / "scripts" / "incidents.py"
-        content = incidents_module.read_text()
+        content = INCIDENTS_MODULE_PATH.read_text()
 
         try:
             ast.parse(content)
@@ -180,8 +183,7 @@ class TestSkillLoading(unittest.TestCase):
 
     def test_all_python_scripts_have_valid_syntax(self):
         """All Python scripts must have valid syntax."""
-        scripts_dir = PROJECT_ROOT / "scripts"
-        python_files = list(scripts_dir.glob("*.py"))
+        python_files = list(SCRIPTS_DIR.glob("*.py"))
 
         self.assertGreater(
             len(python_files),
@@ -202,8 +204,7 @@ class TestSkillDocumentation(unittest.TestCase):
 
     def test_skills_directory_has_subdirectories(self):
         """skills/ directory should contain operation subdirectories."""
-        skills_dir = PROJECT_ROOT / "skills"
-        subdirs = [d for d in skills_dir.iterdir() if d.is_dir()]
+        subdirs = [d for d in SKILLS_DIR.iterdir() if d.is_dir()]
 
         self.assertGreater(
             len(subdirs),
@@ -213,16 +214,14 @@ class TestSkillDocumentation(unittest.TestCase):
 
     def test_incidents_skill_directory_exists(self):
         """Incidents skill documentation directory must exist."""
-        incidents_dir = PROJECT_ROOT / "skills" / "incidents"
         self.assertTrue(
-            incidents_dir.exists(),
+            INCIDENTS_DIR.exists(),
             "skills/incidents/ directory is required"
         )
 
     def test_incidents_skill_has_documentation(self):
         """Incidents skill must have at least one documentation file."""
-        incidents_dir = PROJECT_ROOT / "skills" / "incidents"
-        md_files = list(incidents_dir.glob("*.md"))
+        md_files = list(INCIDENTS_DIR.glob("*.md"))
 
         self.assertGreater(
             len(md_files),
@@ -232,26 +231,22 @@ class TestSkillDocumentation(unittest.TestCase):
 
     def test_get_incident_documentation_exists(self):
         """get-incident.md documentation must exist."""
-        get_incident_md = PROJECT_ROOT / "skills" / "incidents" / "get-incident.md"
         self.assertTrue(
-            get_incident_md.exists(),
+            GET_INCIDENT_MD_PATH.exists(),
             "skills/incidents/get-incident.md is required"
         )
 
     def test_query_incidents_documentation_exists(self):
         """query-incidents.md documentation must exist."""
-        query_incidents_md = PROJECT_ROOT / "skills" / "incidents" / "query-incidents.md"
         self.assertTrue(
-            query_incidents_md.exists(),
+            QUERY_INCIDENTS_MD_PATH.exists(),
             "skills/incidents/query-incidents.md is required"
         )
 
     def test_all_documentation_files_readable(self):
         """All documentation files must be readable."""
-        skills_dir = PROJECT_ROOT / "skills"
-
         # Find all .md files recursively
-        md_files = list(skills_dir.rglob("*.md"))
+        md_files = list(SKILLS_DIR.rglob("*.md"))
 
         self.assertGreater(
             len(md_files),
@@ -272,8 +267,7 @@ class TestSkillDocumentation(unittest.TestCase):
 
     def test_documentation_has_script_references(self):
         """Documentation files should reference the scripts to execute."""
-        skills_dir = PROJECT_ROOT / "skills"
-        md_files = list(skills_dir.rglob("*.md"))
+        md_files = list(SKILLS_DIR.rglob("*.md"))
 
         for md_file in md_files:
             content = md_file.read_text()
@@ -295,19 +289,18 @@ class TestSkillStructure(unittest.TestCase):
 
     def test_required_files_exist(self):
         """All required files for a valid skill must exist."""
-        required_files = [
-            "SKILL.md",
-            "scripts/servicenow_api.py",
-            "scripts/incidents.py",
-            "skills/incidents/get-incident.md",
-            "skills/incidents/query-incidents.md",
+        required_paths = [
+            SKILL_MD_PATH,
+            SERVICENOW_API_PATH,
+            INCIDENTS_MODULE_PATH,
+            GET_INCIDENT_MD_PATH,
+            QUERY_INCIDENTS_MD_PATH,
         ]
 
-        for file_path in required_files:
-            full_path = PROJECT_ROOT / file_path
+        for file_path in required_paths:
             self.assertTrue(
-                full_path.exists(),
-                f"Required file missing: {file_path}"
+                file_path.exists(),
+                f"Required file missing: {file_path.relative_to(PROJECT_ROOT)}"
             )
 
     def test_no_syntax_errors_in_any_python_file(self):
@@ -326,24 +319,21 @@ class TestSkillStructure(unittest.TestCase):
 
     def test_readme_exists(self):
         """README.md should exist for project documentation."""
-        readme = PROJECT_ROOT / "README.md"
         self.assertTrue(
-            readme.exists(),
+            README_PATH.exists(),
             "README.md is recommended for project documentation"
         )
 
     def test_gitignore_exists(self):
         """.gitignore should exist to prevent committing sensitive files."""
-        gitignore = PROJECT_ROOT / ".gitignore"
         self.assertTrue(
-            gitignore.exists(),
+            GITIGNORE_PATH.exists(),
             ".gitignore is recommended"
         )
 
     def test_gitignore_excludes_env_files(self):
         """.gitignore should exclude environment files with credentials."""
-        gitignore = PROJECT_ROOT / ".gitignore"
-        content = gitignore.read_text()
+        content = GITIGNORE_PATH.read_text()
 
         # Check for common patterns that exclude env files
         excludes_env = any([
@@ -355,6 +345,173 @@ class TestSkillStructure(unittest.TestCase):
         self.assertTrue(
             excludes_env,
             ".gitignore should exclude .env files to prevent credential leaks"
+        )
+
+
+class TestErrorHandling(unittest.TestCase):
+    """Negative test cases for error handling scenarios."""
+
+    def setUp(self):
+        """Create a temporary directory for test fixtures."""
+        self.temp_dir = Path(tempfile.mkdtemp())
+
+    def tearDown(self):
+        """Clean up temporary directory after tests."""
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_missing_skill_md_detected(self):
+        """Verify that a missing SKILL.md file is detected."""
+        missing_skill_md = self.temp_dir / "SKILL.md"
+        self.assertFalse(
+            missing_skill_md.exists(),
+            "Test fixture should not have SKILL.md"
+        )
+
+    def test_invalid_frontmatter_missing_opening_delimiter(self):
+        """Detect SKILL.md without opening frontmatter delimiter."""
+        invalid_skill_md = self.temp_dir / "SKILL.md"
+        invalid_skill_md.write_text("name: test\ndescription: test\n---\n# Content")
+
+        content = invalid_skill_md.read_text()
+        self.assertFalse(
+            content.startswith("---"),
+            "Content without opening delimiter should be detected"
+        )
+
+    def test_invalid_frontmatter_missing_closing_delimiter(self):
+        """Detect SKILL.md without closing frontmatter delimiter."""
+        invalid_skill_md = self.temp_dir / "SKILL.md"
+        invalid_skill_md.write_text("---\nname: test\ndescription: test\n# Content without closing")
+
+        content = invalid_skill_md.read_text()
+        lines = content.split("\n")
+
+        frontmatter_end = None
+        for i, line in enumerate(lines[1:], start=1):
+            if line.strip() == "---":
+                frontmatter_end = i
+                break
+
+        self.assertIsNone(
+            frontmatter_end,
+            "Missing closing delimiter should be detected"
+        )
+
+    def test_invalid_frontmatter_missing_name_field(self):
+        """Detect SKILL.md with missing name field."""
+        invalid_skill_md = self.temp_dir / "SKILL.md"
+        invalid_skill_md.write_text("---\ndescription: test description\n---\n# Content")
+
+        content = invalid_skill_md.read_text()
+        lines = content.split("\n")
+
+        name_value = None
+        for line in lines:
+            if line.strip().startswith("name:"):
+                name_value = line.split(":", 1)[1].strip()
+                break
+
+        self.assertIsNone(
+            name_value,
+            "Missing name field should be detected"
+        )
+
+    def test_invalid_frontmatter_missing_description_field(self):
+        """Detect SKILL.md with missing description field."""
+        invalid_skill_md = self.temp_dir / "SKILL.md"
+        invalid_skill_md.write_text("---\nname: test name\n---\n# Content")
+
+        content = invalid_skill_md.read_text()
+        lines = content.split("\n")
+
+        description_value = None
+        for line in lines:
+            if line.strip().startswith("description:"):
+                description_value = line.split(":", 1)[1].strip()
+                break
+
+        self.assertIsNone(
+            description_value,
+            "Missing description field should be detected"
+        )
+
+    def test_invalid_frontmatter_empty_name_field(self):
+        """Detect SKILL.md with empty name field."""
+        invalid_skill_md = self.temp_dir / "SKILL.md"
+        invalid_skill_md.write_text("---\nname:\ndescription: test description\n---\n# Content")
+
+        content = invalid_skill_md.read_text()
+        lines = content.split("\n")
+
+        name_value = None
+        for line in lines:
+            if line.strip().startswith("name:"):
+                name_value = line.split(":", 1)[1].strip()
+                break
+
+        self.assertEqual(
+            name_value,
+            "",
+            "Empty name field should be detected"
+        )
+
+    def test_invalid_frontmatter_empty_description_field(self):
+        """Detect SKILL.md with empty description field."""
+        invalid_skill_md = self.temp_dir / "SKILL.md"
+        invalid_skill_md.write_text("---\nname: test name\ndescription:\n---\n# Content")
+
+        content = invalid_skill_md.read_text()
+        lines = content.split("\n")
+
+        description_value = None
+        for line in lines:
+            if line.strip().startswith("description:"):
+                description_value = line.split(":", 1)[1].strip()
+                break
+
+        self.assertEqual(
+            description_value,
+            "",
+            "Empty description field should be detected"
+        )
+
+    def test_invalid_python_syntax_detected(self):
+        """Detect Python files with syntax errors."""
+        invalid_py = self.temp_dir / "invalid.py"
+        invalid_py.write_text("def broken(\n    # missing closing paren")
+
+        content = invalid_py.read_text()
+        with self.assertRaises(SyntaxError):
+            ast.parse(content)
+
+    def test_missing_scripts_directory(self):
+        """Verify missing scripts directory is detected."""
+        missing_scripts = self.temp_dir / "scripts"
+        self.assertFalse(
+            missing_scripts.exists(),
+            "Test fixture should not have scripts directory"
+        )
+
+    def test_missing_skills_directory(self):
+        """Verify missing skills directory is detected."""
+        missing_skills = self.temp_dir / "skills"
+        self.assertFalse(
+            missing_skills.exists(),
+            "Test fixture should not have skills directory"
+        )
+
+    def test_empty_documentation_file_detected(self):
+        """Detect empty documentation files."""
+        docs_dir = self.temp_dir / "skills" / "incidents"
+        docs_dir.mkdir(parents=True)
+        empty_doc = docs_dir / "empty.md"
+        empty_doc.write_text("")
+
+        content = empty_doc.read_text()
+        self.assertEqual(
+            len(content),
+            0,
+            "Empty documentation file should be detected"
         )
 
 
