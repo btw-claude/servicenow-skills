@@ -193,7 +193,7 @@ JSON object containing the CI record:
   },
   "environment": "Production",
   "active": "true",
-  "sys_created_on": "2024-01-15 10:30:00"
+  "sys_created_on": "<timestamp>"
 }
 ```
 

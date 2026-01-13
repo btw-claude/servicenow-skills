@@ -164,8 +164,8 @@ JSON object containing the change request record:
     "link": "https://instance.service-now.com/api/now/table/sys_user/ghi789",
     "value": "ghi789"
   },
-  "planned_start_date": "2026-01-20 02:00:00",
-  "planned_end_date": "2026-01-20 04:00:00",
+  "planned_start_date": "<timestamp>",
+  "planned_end_date": "<timestamp>",
   "active": "true",
   "approval": "approved",
   "cab_required": "false"

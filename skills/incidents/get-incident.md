@@ -159,7 +159,7 @@ JSON object containing the incident record:
     "link": "https://instance.service-now.com/api/now/table/sys_user/ghi789",
     "value": "ghi789"
   },
-  "opened_at": "2024-01-15 10:30:00",
+  "opened_at": "<timestamp>",
   "active": "true"
 }
 ```
