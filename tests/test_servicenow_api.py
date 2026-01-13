@@ -22,6 +22,7 @@ import sys
 import json
 import socket
 import unittest
+import base64
 from pathlib import Path
 from io import StringIO, BytesIO
 from unittest.mock import patch, MagicMock, Mock
@@ -494,6 +495,49 @@ class TestCredentialValidation(unittest.TestCase):
         result = _validate_credential(special_key, "TEST_CRED")
         self.assertEqual(result, special_key)
 
+    # SNOW-62: Unicode credential testing
+    def test_validate_credential_unicode_greek_letters(self):
+        """_validate_credential should handle credentials with Greek unicode characters."""
+        unicode_key = "api-key-αβγ"
+        result = _validate_credential(unicode_key, "TEST_CRED")
+        self.assertEqual(result, unicode_key)
+
+    def test_validate_credential_unicode_cyrillic(self):
+        """_validate_credential should handle credentials with Cyrillic unicode characters."""
+        unicode_key = "api-ключ-тест"
+        result = _validate_credential(unicode_key, "TEST_CRED")
+        self.assertEqual(result, unicode_key)
+
+    def test_validate_credential_unicode_chinese(self):
+        """_validate_credential should handle credentials with Chinese unicode characters."""
+        unicode_key = "api-密钥-测试"
+        result = _validate_credential(unicode_key, "TEST_CRED")
+        self.assertEqual(result, unicode_key)
+
+    def test_validate_credential_unicode_japanese(self):
+        """_validate_credential should handle credentials with Japanese unicode characters."""
+        unicode_key = "api-キー-テスト"
+        result = _validate_credential(unicode_key, "TEST_CRED")
+        self.assertEqual(result, unicode_key)
+
+    def test_validate_credential_unicode_emoji(self):
+        """_validate_credential should handle credentials with emoji characters."""
+        unicode_key = "api-key-🔑-🔒"
+        result = _validate_credential(unicode_key, "TEST_CRED")
+        self.assertEqual(result, unicode_key)
+
+    def test_validate_credential_unicode_mixed(self):
+        """_validate_credential should handle credentials with mixed unicode characters."""
+        unicode_key = "apiKey-αβγ-ключ-密钥-🔑"
+        result = _validate_credential(unicode_key, "TEST_CRED")
+        self.assertEqual(result, unicode_key)
+
+    def test_validate_credential_unicode_with_whitespace_stripping(self):
+        """_validate_credential should strip whitespace from unicode credentials."""
+        unicode_key = "  api-key-αβγ  "
+        result = _validate_credential(unicode_key, "TEST_CRED")
+        self.assertEqual(result, "api-key-αβγ")
+
     def test_get_config_whitespace_username_raises_error(self):
         """get_config should raise ConfigurationError for whitespace-only username."""
         env_vars = {
@@ -582,6 +626,228 @@ class TestCredentialValidation(unittest.TestCase):
                 config = get_config()
                 self.assertEqual(config["username"], "admin")
                 self.assertEqual(config["password"], "secret123")
+
+
+# =============================================================================
+# Unit Tests - Unicode and Special Characters in Authorization Headers (SNOW-62)
+# =============================================================================
+
+class TestUnicodeAuthorizationHeaders:
+    """Test unicode and special character handling in Authorization headers.
+
+    SNOW-62: Integration-style tests verifying that API keys with special
+    characters and unicode work correctly when encoded in the Authorization header.
+    """
+
+    def test_api_key_unicode_greek_in_bearer_header(self):
+        """API key with Greek characters should be correctly set in Bearer header."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": None,
+            "password": None,
+            "client_id": None,
+            "client_secret": None,
+            "api_key": "api-key-αβγ",
+        }
+        client = ServiceNowClient(config)
+        header = client._get_auth_header()
+
+        assert header["Authorization"] == "Bearer api-key-αβγ"
+
+    def test_api_key_unicode_cyrillic_in_bearer_header(self):
+        """API key with Cyrillic characters should be correctly set in Bearer header."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": None,
+            "password": None,
+            "client_id": None,
+            "client_secret": None,
+            "api_key": "api-ключ-тест",
+        }
+        client = ServiceNowClient(config)
+        header = client._get_auth_header()
+
+        assert header["Authorization"] == "Bearer api-ключ-тест"
+
+    def test_api_key_unicode_chinese_in_bearer_header(self):
+        """API key with Chinese characters should be correctly set in Bearer header."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": None,
+            "password": None,
+            "client_id": None,
+            "client_secret": None,
+            "api_key": "api-密钥-测试",
+        }
+        client = ServiceNowClient(config)
+        header = client._get_auth_header()
+
+        assert header["Authorization"] == "Bearer api-密钥-测试"
+
+    def test_api_key_unicode_emoji_in_bearer_header(self):
+        """API key with emoji should be correctly set in Bearer header."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": None,
+            "password": None,
+            "client_id": None,
+            "client_secret": None,
+            "api_key": "api-key-🔑-🔒",
+        }
+        client = ServiceNowClient(config)
+        header = client._get_auth_header()
+
+        assert header["Authorization"] == "Bearer api-key-🔑-🔒"
+
+    def test_api_key_mixed_unicode_in_bearer_header(self):
+        """API key with mixed unicode should be correctly set in Bearer header."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": None,
+            "password": None,
+            "client_id": None,
+            "client_secret": None,
+            "api_key": "apiKey-αβγ-ключ-密钥-🔑",
+        }
+        client = ServiceNowClient(config)
+        header = client._get_auth_header()
+
+        assert header["Authorization"] == "Bearer apiKey-αβγ-ключ-密钥-🔑"
+
+    def test_basic_auth_unicode_username_encoding(self):
+        """Basic auth with unicode username should be correctly base64 encoded."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": "admin-αβγ",
+            "password": "secret",
+            "client_id": None,
+            "client_secret": None,
+            "api_key": None,
+        }
+        client = ServiceNowClient(config)
+        header = client._get_auth_header()
+
+        # Verify header starts with Basic
+        assert header["Authorization"].startswith("Basic ")
+
+        # Decode and verify the credentials
+        encoded_part = header["Authorization"].split(" ")[1]
+        decoded = base64.b64decode(encoded_part).decode('utf-8')
+        assert decoded == "admin-αβγ:secret"
+
+    def test_basic_auth_unicode_password_encoding(self):
+        """Basic auth with unicode password should be correctly base64 encoded."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": "admin",
+            "password": "секретный-пароль",
+            "client_id": None,
+            "client_secret": None,
+            "api_key": None,
+        }
+        client = ServiceNowClient(config)
+        header = client._get_auth_header()
+
+        # Verify header starts with Basic
+        assert header["Authorization"].startswith("Basic ")
+
+        # Decode and verify the credentials
+        encoded_part = header["Authorization"].split(" ")[1]
+        decoded = base64.b64decode(encoded_part).decode('utf-8')
+        assert decoded == "admin:секретный-пароль"
+
+    def test_basic_auth_unicode_both_credentials_encoding(self):
+        """Basic auth with unicode in both credentials should be correctly encoded."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": "管理员",
+            "password": "密码-🔐",
+            "client_id": None,
+            "client_secret": None,
+            "api_key": None,
+        }
+        client = ServiceNowClient(config)
+        header = client._get_auth_header()
+
+        # Verify header starts with Basic
+        assert header["Authorization"].startswith("Basic ")
+
+        # Decode and verify the credentials
+        encoded_part = header["Authorization"].split(" ")[1]
+        decoded = base64.b64decode(encoded_part).decode('utf-8')
+        assert decoded == "管理员:密码-🔐"
+
+    def test_api_key_special_characters_in_bearer_header(self):
+        """API key with special characters should be correctly set in Bearer header."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": None,
+            "password": None,
+            "client_id": None,
+            "client_secret": None,
+            "api_key": "api+key/with=special&chars!@#$%",
+        }
+        client = ServiceNowClient(config)
+        header = client._get_auth_header()
+
+        assert header["Authorization"] == "Bearer api+key/with=special&chars!@#$%"
+
+    @patch('servicenow_api.urlopen')
+    def test_unicode_api_key_in_actual_request(self, mock_urlopen):
+        """Unicode API key should be correctly sent in actual HTTP request headers."""
+        mock_response = MagicMock()
+        mock_response.read.return_value = b'{"result": []}'
+        mock_response.__enter__ = Mock(return_value=mock_response)
+        mock_response.__exit__ = Mock(return_value=False)
+        mock_urlopen.return_value = mock_response
+
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": None,
+            "password": None,
+            "client_id": None,
+            "client_secret": None,
+            "api_key": "api-key-αβγ-🔑",
+        }
+        client = ServiceNowClient(config)
+        client.get("incident")
+
+        # Verify the Authorization header in the request
+        call_args = mock_urlopen.call_args
+        request = call_args[0][0]
+        assert request.headers["Authorization"] == "Bearer api-key-αβγ-🔑"
+
+    @patch('servicenow_api.urlopen')
+    def test_unicode_basic_auth_in_actual_request(self, mock_urlopen):
+        """Unicode basic auth credentials should be correctly encoded in HTTP request."""
+        mock_response = MagicMock()
+        mock_response.read.return_value = b'{"result": []}'
+        mock_response.__enter__ = Mock(return_value=mock_response)
+        mock_response.__exit__ = Mock(return_value=False)
+        mock_urlopen.return_value = mock_response
+
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": "用户",
+            "password": "пароль",
+            "client_id": None,
+            "client_secret": None,
+            "api_key": None,
+        }
+        client = ServiceNowClient(config)
+        client.get("incident")
+
+        # Verify the Authorization header in the request
+        call_args = mock_urlopen.call_args
+        request = call_args[0][0]
+
+        # Verify it's Basic auth
+        assert request.headers["Authorization"].startswith("Basic ")
+
+        # Decode and verify the credentials
+        encoded_part = request.headers["Authorization"].split(" ")[1]
+        decoded = base64.b64decode(encoded_part).decode('utf-8')
+        assert decoded == "用户:пароль"
 
 
 # =============================================================================
