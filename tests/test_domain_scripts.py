@@ -104,6 +104,28 @@ class TestIncidentsScript(unittest.TestCase):
 
             self.assertIsInstance(result, list)
 
+    def test_incidents_get_raises_not_found_error_when_missing(self):
+        """incidents.py get action must raise NotFoundError when incident not found."""
+        from incidents import NotFoundError
+        with patch('incidents.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": {}}
+            mock_client.return_value = mock_instance
+            with self.assertRaises(NotFoundError) as context:
+                self.dispatch_action({"action": "get", "sys_id": "nonexistent123"})
+            self.assertIn("not found", str(context.exception))
+
+    def test_incidents_get_by_number_raises_not_found_error_when_missing(self):
+        """incidents.py get_by_number action must raise NotFoundError when incident not found."""
+        from incidents import NotFoundError
+        with patch('incidents.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+            with self.assertRaises(NotFoundError) as context:
+                self.dispatch_action({"action": "get_by_number", "number": "INC9999999"})
+            self.assertIn("not found", str(context.exception))
+
     def test_incidents_supports_documented_actions(self):
         """incidents.py must support all documented actions."""
         import incidents
