@@ -35,6 +35,10 @@ python scripts/cmdb.py
 
 ## Quick Reference
 
+### sys_id Format
+
+**Note:** In ServiceNow, `sys_id` values are 32-character hexadecimal strings that uniquely identify records. For example: `6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c`. The shortened examples in this documentation (e.g., `abc123`) are for readability only—actual sys_id values you'll encounter will always be 32 characters long.
+
 ### CI Classes
 Common CI classes: `cmdb_ci_server`, `cmdb_ci_computer`, `cmdb_ci_database`, `cmdb_ci_network_gear`, `cmdb_ci_service`
 
@@ -434,6 +438,99 @@ The following table shows approximate response sizes to help with planning:
 | Relationship | Custom (3 fields) | ~150 bytes each |
 
 **Tip:** For performance-sensitive operations or when working with large datasets, specify only the fields you need using the `fields` parameter.
+
+## Error Responses
+
+The CMDB API returns structured error responses when operations fail. Understanding these error formats helps with debugging and error handling in your integrations.
+
+### CI Not Found
+
+When requesting a CI that does not exist:
+
+```bash
+echo '{"action": "get", "sys_id": "nonexistent123456789012345678901"}' | python scripts/cmdb.py
+```
+
+**Error response:**
+```json
+{
+  "error": {
+    "message": "No record found",
+    "detail": "Record not found for sys_id: nonexistent123456789012345678901"
+  },
+  "status": "failure"
+}
+```
+
+### Invalid Parameters
+
+When providing invalid or malformed parameters:
+
+```bash
+echo '{"action": "query", "ci_class": "invalid_class_name"}' | python scripts/cmdb.py
+```
+
+**Error response:**
+```json
+{
+  "error": {
+    "message": "Invalid table",
+    "detail": "Table 'invalid_class_name' does not exist or is not accessible"
+  },
+  "status": "failure"
+}
+```
+
+Another example with missing required parameters:
+
+```bash
+echo '{"action": "get"}' | python scripts/cmdb.py
+```
+
+**Error response:**
+```json
+{
+  "error": {
+    "message": "Missing required parameter",
+    "detail": "The 'get' action requires one of: sys_id, ip_address, or serial_number"
+  },
+  "status": "failure"
+}
+```
+
+### Permission Denied
+
+When the authenticated user lacks permission to access the requested resource:
+
+```bash
+echo '{"action": "get", "sys_id": "restricted12345678901234567890123"}' | python scripts/cmdb.py
+```
+
+**Error response:**
+```json
+{
+  "error": {
+    "message": "Access denied",
+    "detail": "User does not have permission to access this CI record. Required role: itil or cmdb_read"
+  },
+  "status": "failure"
+}
+```
+
+### Authentication Failure
+
+When API credentials are invalid or expired:
+
+**Error response:**
+```json
+{
+  "error": {
+    "message": "Authentication failed",
+    "detail": "Invalid credentials or session expired. Please verify your SERVICENOW_INSTANCE, SERVICENOW_USER, and SERVICENOW_PASSWORD environment variables."
+  },
+  "status": "failure"
+}
+```
 
 ## Related Documentation
 
