@@ -8,6 +8,8 @@ Search and filter incidents in ServiceNow using various criteria.
 python scripts/incidents.py
 ```
 
+> **Note:** Run all scripts from the skill root directory (where the `scripts/` folder is located).
+
 ## Input
 
 JSON object on stdin:
@@ -186,7 +188,7 @@ JSON array of incident records matching the query:
 ```json
 [
   {
-    "sys_id": "a1b2c3d4e5f6g7h8i9j0",
+    "sys_id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
     "number": "INC0010001",
     "short_description": "Email not working",
     "state": "2",
@@ -196,7 +198,7 @@ JSON array of incident records matching the query:
     "active": "true"
   },
   {
-    "sys_id": "b2c3d4e5f6g7h8i9j0k1",
+    "sys_id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d7e8",
     "number": "INC0010002",
     "short_description": "VPN connection issues",
     "state": "1",
