@@ -182,6 +182,42 @@ class TestQuoteParsing(unittest.TestCase):
         self.assertEqual(_parse_quoted_value('""'), "")
         self.assertEqual(_parse_quoted_value("''"), "")
 
+    # SNOW-38: Escape sequence tests
+    def test_parse_newline_escape_double_quotes(self):
+        """_parse_quoted_value should handle \\n in double-quoted strings."""
+        self.assertEqual(_parse_quoted_value('"line1\\nline2"'), "line1\nline2")
+
+    def test_parse_tab_escape_double_quotes(self):
+        """_parse_quoted_value should handle \\t in double-quoted strings."""
+        self.assertEqual(_parse_quoted_value('"col1\\tcol2"'), "col1\tcol2")
+
+    def test_parse_newline_escape_single_quotes(self):
+        """_parse_quoted_value should handle \\n in single-quoted strings."""
+        self.assertEqual(_parse_quoted_value("'line1\\nline2'"), "line1\nline2")
+
+    def test_parse_tab_escape_single_quotes(self):
+        """_parse_quoted_value should handle \\t in single-quoted strings."""
+        self.assertEqual(_parse_quoted_value("'col1\\tcol2'"), "col1\tcol2")
+
+    def test_parse_combined_escape_sequences(self):
+        """_parse_quoted_value should handle multiple escape sequences together."""
+        self.assertEqual(
+            _parse_quoted_value('"name\\tvalue\\nkey\\tdata"'),
+            "name\tvalue\nkey\tdata"
+        )
+
+    def test_parse_escape_sequences_with_backslash(self):
+        """_parse_quoted_value should handle escape sequences alongside backslashes."""
+        # \\\\n should become \n (literal backslash followed by 'n')
+        self.assertEqual(_parse_quoted_value('"path\\\\nfile"'), 'path\\nfile')
+        # \\\\ followed by \\n should become \ followed by newline
+        self.assertEqual(_parse_quoted_value('"\\\\\\n"'), '\\\n')
+
+    def test_parse_escape_sequences_unquoted_unchanged(self):
+        """_parse_quoted_value should not process escape sequences in unquoted strings."""
+        # Unquoted strings should be returned as-is
+        self.assertEqual(_parse_quoted_value('value\\nwith\\tescapes'), 'value\\nwith\\tescapes')
+
 
 # =============================================================================
 # Unit Tests - Environment Loading
@@ -282,6 +318,67 @@ SINGLE_QUOTED='single-quoted-value'
                 config = get_config()
                 self.assertEqual(config["instance"], "https://test.service-now.com")
 
+    # SNOW-38: Timeout environment variable tests
+    def test_get_config_timeout_from_env(self):
+        """get_config should read SERVICENOW_TIMEOUT from environment."""
+        env_vars = {
+            "SERVICENOW_INSTANCE": "https://test.service-now.com",
+            "SERVICENOW_API_KEY": "key",
+            "SERVICENOW_TIMEOUT": "60"
+        }
+        with patch.dict(os.environ, env_vars, clear=True):
+            with patch('servicenow_api.load_env_file', return_value={}):
+                config = get_config()
+                self.assertEqual(config["timeout"], 60)
+
+    def test_get_config_timeout_from_env_file(self):
+        """get_config should read SERVICENOW_TIMEOUT from env file."""
+        env_vars = {
+            "SERVICENOW_INSTANCE": "https://test.service-now.com",
+            "SERVICENOW_API_KEY": "key"
+        }
+        file_vars = {"SERVICENOW_TIMEOUT": "90"}
+        with patch.dict(os.environ, env_vars, clear=True):
+            with patch('servicenow_api.load_env_file', return_value=file_vars):
+                config = get_config()
+                self.assertEqual(config["timeout"], 90)
+
+    def test_get_config_timeout_env_overrides_file(self):
+        """Environment variable SERVICENOW_TIMEOUT should override env file."""
+        env_vars = {
+            "SERVICENOW_INSTANCE": "https://test.service-now.com",
+            "SERVICENOW_API_KEY": "key",
+            "SERVICENOW_TIMEOUT": "120"
+        }
+        file_vars = {"SERVICENOW_TIMEOUT": "60"}
+        with patch.dict(os.environ, env_vars, clear=True):
+            with patch('servicenow_api.load_env_file', return_value=file_vars):
+                config = get_config()
+                self.assertEqual(config["timeout"], 120)
+
+    def test_get_config_timeout_invalid_value(self):
+        """get_config should handle invalid SERVICENOW_TIMEOUT gracefully."""
+        env_vars = {
+            "SERVICENOW_INSTANCE": "https://test.service-now.com",
+            "SERVICENOW_API_KEY": "key",
+            "SERVICENOW_TIMEOUT": "not-a-number"
+        }
+        with patch.dict(os.environ, env_vars, clear=True):
+            with patch('servicenow_api.load_env_file', return_value={}):
+                config = get_config()
+                self.assertIsNone(config["timeout"])
+
+    def test_get_config_timeout_not_set(self):
+        """get_config should return None timeout when not configured."""
+        env_vars = {
+            "SERVICENOW_INSTANCE": "https://test.service-now.com",
+            "SERVICENOW_API_KEY": "key"
+        }
+        with patch.dict(os.environ, env_vars, clear=True):
+            with patch('servicenow_api.load_env_file', return_value={}):
+                config = get_config()
+                self.assertIsNone(config["timeout"])
+
 
 # =============================================================================
 # Unit Tests - ServiceNow Client
@@ -352,6 +449,28 @@ class TestServiceNowClient(unittest.TestCase):
         """Client should allow timeout of 0 (no timeout check)."""
         client = ServiceNowClient(self.config, timeout=0)
         self.assertEqual(client.timeout, 0)
+
+    # SNOW-38: Timeout from config tests
+    def test_client_timeout_from_config(self):
+        """Client should use timeout from config when not explicitly provided."""
+        config = self.config.copy()
+        config["timeout"] = 90
+        client = ServiceNowClient(config)
+        self.assertEqual(client.timeout, 90)
+
+    def test_client_explicit_timeout_overrides_config(self):
+        """Explicit timeout parameter should override config timeout."""
+        config = self.config.copy()
+        config["timeout"] = 90
+        client = ServiceNowClient(config, timeout=45)
+        self.assertEqual(client.timeout, 45)
+
+    def test_client_timeout_none_in_config_uses_default(self):
+        """Client should use default timeout when config timeout is None."""
+        config = self.config.copy()
+        config["timeout"] = None
+        client = ServiceNowClient(config)
+        self.assertEqual(client.timeout, 30)
 
 
 class TestServiceNowClientRequests(unittest.TestCase):
