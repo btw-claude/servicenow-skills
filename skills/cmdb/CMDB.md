@@ -395,6 +395,64 @@ echo '{"action": "relationships", "sys_id": "abc123def456"}' | python scripts/cm
 ]
 ```
 
+### CI Query with Display Value All
+
+Using `display_value: "all"` returns both the raw sys_id values AND the display values in a nested structure. This is useful when you need to reference the sys_id (for subsequent API calls) while also showing the human-readable display name:
+
+```bash
+echo '{
+  "action": "query",
+  "ci_class": "cmdb_ci_server",
+  "limit": 1,
+  "display_value": "all"
+}' | python scripts/cmdb.py
+```
+
+**Response with both sys_id and display values:**
+```json
+[
+  {
+    "sys_id": {
+      "display_value": "abc123def456",
+      "value": "abc123def456"
+    },
+    "name": {
+      "display_value": "web-server-prod-01",
+      "value": "web-server-prod-01"
+    },
+    "sys_class_name": {
+      "display_value": "Server",
+      "value": "cmdb_ci_server"
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "location": {
+      "display_value": "New York Data Center",
+      "value": "loc123"
+    },
+    "assigned_to": {
+      "display_value": "John Smith",
+      "value": "user001"
+    },
+    "manufacturer": {
+      "display_value": "Dell",
+      "value": "mfg001"
+    },
+    "environment": {
+      "display_value": "Production",
+      "value": "Production"
+    }
+  }
+]
+```
+
+**When to use each display_value option:**
+- `false` (default): Best for programmatic processing when you only need sys_ids for subsequent API calls
+- `true`: Best for display purposes when you want human-readable values
+- `all`: Best when you need both - displaying to users while retaining sys_ids for follow-up operations
+
 ### Relationship Query with Custom Fields
 
 When the `fields` parameter is specified for relationships:
@@ -436,6 +494,8 @@ The following table shows approximate response sizes to help with planning:
 | 10 CIs | Custom (5 fields) | ~2-4 KB |
 | Relationship | Default (8 fields) | ~500 bytes each |
 | Relationship | Custom (3 fields) | ~150 bytes each |
+
+**Note:** These sizes are approximate and actual sizes will vary based on field content length. Text-heavy fields like `comments` and `short_description` can vary significantly - a CI with extensive comments may be several KB larger than one with minimal notes.
 
 **Tip:** For performance-sensitive operations or when working with large datasets, specify only the fields you need using the `fields` parameter.
 
