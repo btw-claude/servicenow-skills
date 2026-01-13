@@ -139,7 +139,7 @@ JSON object containing the company record:
     "link": "https://instance.service-now.com/api/now/table/core_company/parent123",
     "value": "parent123"
   },
-  "sys_created_on": "2024-01-15 10:30:00"
+  "sys_created_on": "<timestamp>"
 }
 ```
 

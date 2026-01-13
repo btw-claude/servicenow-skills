@@ -165,7 +165,7 @@ JSON array of relationship records:
       "value": "type456"
     },
     "connection_strength": "Always",
-    "sys_created_on": "2024-01-15 10:30:00"
+    "sys_created_on": "<timestamp>"
   },
   {
     "sys_id": "rel987654321",
@@ -182,7 +182,7 @@ JSON array of relationship records:
       "value": "type789"
     },
     "connection_strength": "Always",
-    "sys_created_on": "2024-01-10 14:20:00"
+    "sys_created_on": "<timestamp>"
   }
 ]
 ```
@@ -197,7 +197,7 @@ With `display_value: "true"`:
     "child": "database-01",
     "type": "Depends on::Used by",
     "connection_strength": "Always",
-    "sys_created_on": "2024-01-15 10:30:00"
+    "sys_created_on": "<timestamp>"
   }
 ]
 ```

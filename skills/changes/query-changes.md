@@ -241,8 +241,8 @@ JSON array of change request records matching the query:
     "risk": "2",
     "priority": "3",
     "active": "true",
-    "planned_start_date": "2026-01-20 02:00:00",
-    "planned_end_date": "2026-01-20 04:00:00"
+    "planned_start_date": "<timestamp>",
+    "planned_end_date": "<timestamp>"
   },
   {
     "sys_id": "b2c3d4e5f6g7h8i9j0k1",
@@ -253,8 +253,8 @@ JSON array of change request records matching the query:
     "risk": "1",
     "priority": "1",
     "active": "true",
-    "planned_start_date": "2026-01-15 18:00:00",
-    "planned_end_date": "2026-01-15 19:00:00"
+    "planned_start_date": "<timestamp>",
+    "planned_end_date": "<timestamp>"
   }
 ]
 ```

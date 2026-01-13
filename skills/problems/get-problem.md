@@ -157,7 +157,7 @@ JSON object containing the problem record:
     "link": "https://instance.service-now.com/api/now/table/sys_user/def456",
     "value": "def456"
   },
-  "opened_at": "2024-01-15 10:30:00",
+  "opened_at": "<timestamp>",
   "active": "true",
   "known_error": "true",
   "workaround": "Users can resend failed emails after 5 minutes",
