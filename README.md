@@ -52,12 +52,25 @@ SERVICENOW_API_KEY=your-api-key
 - Scenarios where OAuth token refresh management adds unnecessary complexity
 
 **Generating an API Key:**
-1. Navigate to your ServiceNow instance's **System OAuth > Application Registry**
-2. Create a new OAuth API endpoint for external clients, or use **System Security > API Keys** (if enabled)
-3. Generate a new API key and associate it with an appropriate service account
-4. Copy the generated key value (it will only be shown once)
+1. Navigate to your ServiceNow instance's API key management interface (see version-specific paths below)
+2. Create a new API key and associate it with an appropriate service account
+3. Copy the generated key value (it will only be shown once)
 
-Consult your ServiceNow administrator for instance-specific API key provisioning procedures, as the process may vary based on your ServiceNow version and security configuration.
+**Version-Specific API Key Provisioning Paths:**
+
+| ServiceNow Version | Navigation Path | Notes |
+|-------------------|-----------------|-------|
+| **Washington DC and later** | **System Security > API Keys** | Primary method. Dedicated API key management module with enhanced security features including automatic expiration policies. |
+| **Vancouver, Utah** | **System Security > API Keys** | Available but may require activation via plugin (com.snc.platform.security.api_key). |
+| **Tokyo, San Diego, Rome** | **System OAuth > Application Registry** | Create an OAuth API endpoint for external clients. API keys are managed as part of OAuth client credentials. |
+| **Quebec and earlier** | **System OAuth > Application Registry** | OAuth-based API key management only. Dedicated API key module not available. |
+
+**Key differences between versions:**
+- **San Diego and later**: Support for API key expiration policies, allowing automatic key invalidation after a configured period
+- **Tokyo and later**: Enhanced audit logging for API key usage, including source IP tracking
+- **Washington DC and later**: Native key rotation reminders and integration with ServiceNow's Security Operations module
+
+Consult your ServiceNow administrator for instance-specific API key provisioning procedures, as the process may vary based on your ServiceNow version, installed plugins, and security configuration.
 
 The credentials require appropriate ServiceNow roles for the operations you intend to perform (e.g., `itil`, `itil_admin`, `catalog_admin`).
 
@@ -115,6 +128,32 @@ When using API key authentication, follow these security best practices:
 | **Access Logging** | Enable API access logging | Monitor key usage and detect anomalies in ServiceNow |
 | **IP Restrictions** | Configure IP allowlists | Restrict API key usage to known source addresses where possible |
 | **Separate Keys** | Distinct key per integration | Enables granular access control and easier revocation if needed |
+
+### API Key Rotation Recommendations
+
+Regular API key rotation is a critical security practice. The recommended rotation frequency depends on your environment's risk profile and compliance requirements:
+
+| Environment | Rotation Frequency | Rationale |
+|-------------|-------------------|-----------|
+| **High-security / Regulated** | Every 30 days | Compliance requirements (PCI-DSS, HIPAA, SOX) often mandate frequent rotation. Minimizes exposure window for compromised keys. |
+| **Standard Production** | Every 90 days | Industry best practice balancing security with operational overhead. Aligns with typical password rotation policies. |
+| **Development / Testing** | Every 180 days | Lower risk environment with limited data access. Rotate immediately if key is exposed in logs or version control. |
+| **Emergency Rotation** | Immediately | Required when: key exposure suspected, team member with access departs, security incident occurs, or anomalous API activity detected. |
+
+**Automated Rotation Capabilities in ServiceNow:**
+
+| ServiceNow Version | Automation Features |
+|-------------------|---------------------|
+| **Washington DC and later** | Native key expiration policies with configurable validity periods (30, 60, 90 days). Automatic notification workflows 7-14 days before expiration. Integration with ServiceNow Flow Designer for custom rotation workflows. |
+| **Vancouver, Utah** | Key expiration can be configured via business rules. Manual rotation with ServiceNow Orchestration or Flow Designer automation possible. |
+| **Tokyo and earlier** | No native expiration. Implement rotation via scheduled jobs or external automation (ServiceNow Orchestration, external scripts, or CI/CD pipelines). |
+
+**Rotation Best Practices:**
+1. **Overlap period**: When rotating keys, maintain both old and new keys active for 24-48 hours to allow dependent systems to update
+2. **Automation**: Use CI/CD pipelines or secret management tools (HashiCorp Vault, AWS Secrets Manager) to automate key rotation
+3. **Monitoring**: Set up alerts for keys approaching expiration and track rotation compliance
+4. **Documentation**: Maintain a key inventory with creation dates, owners, and rotation schedules
+5. **Testing**: Validate new keys in a non-production environment before rotating production credentials
 
 ### General Security Guidelines
 
