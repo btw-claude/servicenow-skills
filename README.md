@@ -160,6 +160,12 @@ Regular API key rotation is a critical security practice. The recommended rotati
 
 The following examples demonstrate how to integrate ServiceNow API key rotation with popular secret management tools.
 
+> **macOS (BSD) Compatibility Note:** The date commands in the examples below use GNU date syntax (`date -d '+90 days'`), which is not compatible with macOS's BSD date. On macOS, use `date -v+90d` instead. For example:
+> - GNU/Linux: `date -u -d '+90 days' +%Y-%m-%dT%H:%M:%SZ`
+> - macOS: `date -u -v+90d +%Y-%m-%dT%H:%M:%SZ`
+>
+> Similarly, for the 48-hour offset: use `date -v+48H` on macOS instead of `date -d '+48 hours'`.
+
 **HashiCorp Vault Integration:**
 
 Store and retrieve ServiceNow API keys using HashiCorp Vault's KV secrets engine:
