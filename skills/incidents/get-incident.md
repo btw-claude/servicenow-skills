@@ -15,6 +15,9 @@ Retrieve incident details from ServiceNow by sys_id or incident number.
   - [Display Value Parameter](#display-value-parameter)
 - [Output](#output)
 - [Related Domains](#related-domains)
+  - [Problem Management](#problem-management)
+  - [Change Management](#change-management)
+  - [Service Catalog](#service-catalog)
 - [Errors](#errors)
 
 ## Script

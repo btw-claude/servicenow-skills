@@ -16,6 +16,9 @@ Search and filter problems in ServiceNow using various criteria.
   - [Dot-Walking (Related Records)](#dot-walking-related-records)
 - [Output](#output)
 - [Related Domains](#related-domains)
+  - [Incident Management](#incident-management)
+  - [Change Management](#change-management)
+  - [Service Catalog](#service-catalog)
 - [Errors](#errors)
 
 ## Script

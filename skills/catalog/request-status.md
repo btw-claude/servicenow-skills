@@ -15,6 +15,9 @@ Check the status of service catalog requests and query requests in ServiceNow.
 - [Output](#output)
 - [Related Documentation](#related-documentation)
 - [Related Domains](#related-domains)
+  - [Incident Management](#incident-management)
+  - [Problem Management](#problem-management)
+  - [Change Management](#change-management)
 - [Errors](#errors)
 
 ## Script
