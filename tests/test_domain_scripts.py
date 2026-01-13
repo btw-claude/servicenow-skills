@@ -12,10 +12,8 @@ SNOW-17: Verify All Domain Scripts
 - Verify ValidationError is raised for invalid actions
 """
 
-import os
 import sys
 import ast
-import json
 import unittest
 from pathlib import Path
 from io import StringIO
@@ -525,6 +523,118 @@ class TestCmdbScript(unittest.TestCase):
         self.assertIn("by_serial", docstring)
 
 
+class TestCompaniesScript(unittest.TestCase):
+    """Test companies.py domain script with all actions."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Import the companies module for testing."""
+        from companies import dispatch_action, ValidationError
+        cls.dispatch_action = staticmethod(dispatch_action)
+        cls.ValidationError = ValidationError
+
+    def test_companies_module_has_valid_syntax(self):
+        """companies.py must have valid Python syntax."""
+        companies_file = SCRIPTS_DIR / "companies.py"
+        content = companies_file.read_text()
+        try:
+            ast.parse(content)
+        except SyntaxError as e:
+            self.fail(f"companies.py has syntax error: {e}")
+
+    def test_companies_has_dispatch_action(self):
+        """companies.py must have dispatch_action function."""
+        import companies
+        self.assertTrue(
+            hasattr(companies, 'dispatch_action'),
+            "companies.py must have dispatch_action function"
+        )
+
+    def test_companies_missing_action_raises_error(self):
+        """companies.py must raise ValidationError when action is missing."""
+        with self.assertRaises(self.ValidationError) as context:
+            self.dispatch_action({})
+        self.assertIn("action is required", str(context.exception))
+
+    def test_companies_invalid_action_raises_error(self):
+        """companies.py must raise ValidationError for invalid action."""
+        with patch('companies.create_client') as mock_client:
+            mock_client.return_value = MagicMock()
+            with self.assertRaises(self.ValidationError) as context:
+                self.dispatch_action({"action": "invalid_action"})
+            self.assertIn("Invalid action", str(context.exception))
+            self.assertIn("get, get_by_name, query, search, latest", str(context.exception))
+
+    def test_companies_get_action_requires_sys_id(self):
+        """companies.py get action must require sys_id parameter."""
+        with patch('companies.create_client') as mock_client:
+            mock_client.return_value = MagicMock()
+            with self.assertRaises(self.ValidationError) as context:
+                self.dispatch_action({"action": "get"})
+            self.assertIn("sys_id is required", str(context.exception))
+
+    def test_companies_get_by_name_action_requires_name(self):
+        """companies.py get_by_name action must require name parameter."""
+        with patch('companies.create_client') as mock_client:
+            mock_client.return_value = MagicMock()
+            with self.assertRaises(self.ValidationError) as context:
+                self.dispatch_action({"action": "get_by_name"})
+            self.assertIn("name is required", str(context.exception))
+
+    def test_companies_query_action_accepts_filters(self):
+        """companies.py query action should accept filter parameters."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            result = self.dispatch_action({
+                "action": "query",
+                "name": "Acme",
+                "city": "San Francisco",
+                "state": "CA",
+                "country": "USA",
+                "customer": True,
+                "active": True,
+                "limit": 10
+            })
+
+            self.assertIsInstance(result, list)
+
+    def test_companies_search_action_requires_search_term(self):
+        """companies.py search action must require search_term parameter."""
+        with patch('companies.create_client') as mock_client:
+            mock_client.return_value = MagicMock()
+            with self.assertRaises(self.ValidationError) as context:
+                self.dispatch_action({"action": "search", "search_term": ""})
+            self.assertIn("search_term is required", str(context.exception))
+
+    def test_companies_latest_action(self):
+        """companies.py latest action should work."""
+        with patch('companies.create_client') as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get.return_value = {"result": []}
+            mock_client.return_value = mock_instance
+
+            result = self.dispatch_action({
+                "action": "latest",
+                "limit": 5
+            })
+
+            self.assertIsInstance(result, list)
+
+    def test_companies_supports_documented_actions(self):
+        """companies.py must support all documented actions."""
+        import companies
+        docstring = companies.__doc__
+
+        self.assertIn("get", docstring)
+        self.assertIn("get_by_name", docstring)
+        self.assertIn("query", docstring)
+        self.assertIn("search", docstring)
+        self.assertIn("latest", docstring)
+
+
 class TestServiceNowApiModule(unittest.TestCase):
     """Test servicenow_api.py base module."""
 
@@ -611,6 +721,7 @@ class TestDomainScriptsIntegration(unittest.TestCase):
             "problems.py",
             "catalog.py",
             "cmdb.py",
+            "companies.py",
             "servicenow_api.py",
         ]
 
@@ -629,6 +740,7 @@ class TestDomainScriptsIntegration(unittest.TestCase):
             "problems",
             "catalog",
             "cmdb",
+            "companies",
         ]
 
         for script_name in domain_scripts:
@@ -650,6 +762,7 @@ class TestDomainScriptsIntegration(unittest.TestCase):
             "problems",
             "catalog",
             "cmdb",
+            "companies",
         ]
 
         for script_name in domain_scripts:
@@ -671,6 +784,7 @@ class TestDomainScriptsIntegration(unittest.TestCase):
             "problems.py",
             "catalog.py",
             "cmdb.py",
+            "companies.py",
         ]
 
         for script_name in domain_scripts:
@@ -690,6 +804,7 @@ class TestDomainScriptsIntegration(unittest.TestCase):
             "changes.py",
             "problems.py",
             "cmdb.py",
+            "companies.py",
         ]
 
         for script_name in domain_scripts:
@@ -714,6 +829,7 @@ class TestErrorHandling(unittest.TestCase):
             ("problems", ["get", "get_by_number", "query"]),
             ("catalog", ["categories", "items", "search", "status", "query_requests"]),
             ("cmdb", ["get", "query", "search", "relationships", "by_ip", "by_serial"]),
+            ("companies", ["get", "get_by_name", "query", "search", "latest"]),
         ]
 
         from servicenow_api import ValidationError
