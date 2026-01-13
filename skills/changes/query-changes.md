@@ -192,10 +192,10 @@ The `query` parameter accepts ServiceNow encoded query syntax. Common operators:
 
 | Operator | Description | Example |
 |----------|-------------|---------|
-| `ON` | On specific date | `planned_start_dateON2024-01-20` |
-| `BEFORE` | Before date | `planned_start_dateBEFORE2024-01-20` |
-| `AFTER` | After date | `planned_start_dateAFTER2024-01-20` |
-| `BETWEEN` | Between dates | `planned_start_dateBETWEEN2024-01-01@2024-01-31` |
+| `ON` | On specific date | `planned_start_dateON2026-01-20` |
+| `BEFORE` | Before date | `planned_start_dateBEFORE2026-01-20` |
+| `AFTER` | After date | `planned_start_dateAFTER2026-01-20` |
+| `BETWEEN` | Between dates | `planned_start_dateBETWEEN2026-01-01@2026-01-31` |
 | `RELATIVE` | Relative to now | `planned_start_dateRELATIVEGE@dayofweek@ago@2` |
 
 ### Dot-Walking (Related Records)
@@ -224,8 +224,8 @@ JSON array of change request records matching the query:
     "risk": "2",
     "priority": "3",
     "active": "true",
-    "planned_start_date": "2024-01-20 02:00:00",
-    "planned_end_date": "2024-01-20 04:00:00"
+    "planned_start_date": "2026-01-20 02:00:00",
+    "planned_end_date": "2026-01-20 04:00:00"
   },
   {
     "sys_id": "b2c3d4e5f6g7h8i9j0k1",
@@ -236,8 +236,8 @@ JSON array of change request records matching the query:
     "risk": "1",
     "priority": "1",
     "active": "true",
-    "planned_start_date": "2024-01-15 18:00:00",
-    "planned_end_date": "2024-01-15 19:00:00"
+    "planned_start_date": "2026-01-15 18:00:00",
+    "planned_end_date": "2026-01-15 19:00:00"
   }
 ]
 ```
