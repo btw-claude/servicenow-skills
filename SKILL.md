@@ -87,4 +87,4 @@ Search catalog:
 echo '{"action": "search", "query": "laptop"}' | python scripts/catalog.py
 ```
 
-For ServiceNow encoded query syntax and examples, see `skills/common/encoded-queries.md`.
+For ServiceNow encoded query syntax and detailed configuration, see `README.md`.
