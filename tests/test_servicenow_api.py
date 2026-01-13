@@ -51,6 +51,7 @@ from servicenow_api import (
     load_env_file,
     get_config,
     _parse_quoted_value,
+    _validate_credential,
 )
 
 
@@ -418,6 +419,169 @@ SINGLE_QUOTED='single-quoted-value'
             with patch('servicenow_api.load_env_file', return_value={}):
                 config = get_config()
                 self.assertIsNone(config["timeout"])
+
+
+# =============================================================================
+# Unit Tests - Credential Validation (SNOW-61)
+# =============================================================================
+
+class TestCredentialValidation(unittest.TestCase):
+    """Test credential validation and whitespace handling.
+
+    SNOW-61: Tests for _validate_credential function and get_config hardening
+    to properly handle whitespace-only and leading/trailing whitespace in credentials.
+    """
+
+    def test_validate_credential_none_returns_none(self):
+        """_validate_credential should return None for None input."""
+        result = _validate_credential(None, "TEST_CRED")
+        self.assertIsNone(result)
+
+    def test_validate_credential_empty_string_returns_none(self):
+        """_validate_credential should return None for empty string."""
+        result = _validate_credential("", "TEST_CRED")
+        self.assertIsNone(result)
+
+    def test_validate_credential_valid_value_unchanged(self):
+        """_validate_credential should return valid value unchanged."""
+        result = _validate_credential("my-api-key", "TEST_CRED")
+        self.assertEqual(result, "my-api-key")
+
+    def test_validate_credential_strips_leading_whitespace(self):
+        """_validate_credential should strip leading whitespace."""
+        result = _validate_credential("   my-api-key", "TEST_CRED")
+        self.assertEqual(result, "my-api-key")
+
+    def test_validate_credential_strips_trailing_whitespace(self):
+        """_validate_credential should strip trailing whitespace."""
+        result = _validate_credential("my-api-key   ", "TEST_CRED")
+        self.assertEqual(result, "my-api-key")
+
+    def test_validate_credential_strips_both_whitespace(self):
+        """_validate_credential should strip leading and trailing whitespace."""
+        result = _validate_credential("  my-api-key  ", "TEST_CRED")
+        self.assertEqual(result, "my-api-key")
+
+    def test_validate_credential_whitespace_only_raises_error(self):
+        """_validate_credential should raise ConfigurationError for whitespace-only value."""
+        with self.assertRaises(ConfigurationError) as context:
+            _validate_credential("   ", "SERVICENOW_API_KEY")
+        self.assertIn("SERVICENOW_API_KEY", str(context.exception))
+        self.assertIn("whitespace", str(context.exception).lower())
+
+    def test_validate_credential_tabs_only_raises_error(self):
+        """_validate_credential should raise ConfigurationError for tabs-only value."""
+        with self.assertRaises(ConfigurationError) as context:
+            _validate_credential("\t\t", "SERVICENOW_PASSWORD")
+        self.assertIn("SERVICENOW_PASSWORD", str(context.exception))
+        self.assertIn("whitespace", str(context.exception).lower())
+
+    def test_validate_credential_mixed_whitespace_only_raises_error(self):
+        """_validate_credential should raise ConfigurationError for mixed whitespace-only."""
+        with self.assertRaises(ConfigurationError) as context:
+            _validate_credential(" \t \n ", "SERVICENOW_CLIENT_SECRET")
+        self.assertIn("SERVICENOW_CLIENT_SECRET", str(context.exception))
+        self.assertIn("whitespace", str(context.exception).lower())
+
+    def test_validate_credential_preserves_internal_whitespace(self):
+        """_validate_credential should preserve internal whitespace in values."""
+        result = _validate_credential("my key with spaces", "TEST_CRED")
+        self.assertEqual(result, "my key with spaces")
+
+    def test_validate_credential_special_characters_unchanged(self):
+        """_validate_credential should handle values with special characters."""
+        special_key = "api+key/with=special&chars!@#$%"
+        result = _validate_credential(special_key, "TEST_CRED")
+        self.assertEqual(result, special_key)
+
+    def test_get_config_whitespace_username_raises_error(self):
+        """get_config should raise ConfigurationError for whitespace-only username."""
+        env_vars = {
+            "SERVICENOW_INSTANCE": "https://test.service-now.com",
+            "SERVICENOW_USERNAME": "   ",
+            "SERVICENOW_PASSWORD": "valid-password"
+        }
+        with patch.dict(os.environ, env_vars, clear=True):
+            with patch('servicenow_api.load_env_file', return_value={}):
+                with self.assertRaises(ConfigurationError) as context:
+                    get_config()
+                self.assertIn("SERVICENOW_USERNAME", str(context.exception))
+
+    def test_get_config_whitespace_password_raises_error(self):
+        """get_config should raise ConfigurationError for whitespace-only password."""
+        env_vars = {
+            "SERVICENOW_INSTANCE": "https://test.service-now.com",
+            "SERVICENOW_USERNAME": "valid-user",
+            "SERVICENOW_PASSWORD": "   "
+        }
+        with patch.dict(os.environ, env_vars, clear=True):
+            with patch('servicenow_api.load_env_file', return_value={}):
+                with self.assertRaises(ConfigurationError) as context:
+                    get_config()
+                self.assertIn("SERVICENOW_PASSWORD", str(context.exception))
+
+    def test_get_config_whitespace_client_id_raises_error(self):
+        """get_config should raise ConfigurationError for whitespace-only client_id."""
+        env_vars = {
+            "SERVICENOW_INSTANCE": "https://test.service-now.com",
+            "SERVICENOW_CLIENT_ID": "   ",
+            "SERVICENOW_CLIENT_SECRET": "valid-secret"
+        }
+        with patch.dict(os.environ, env_vars, clear=True):
+            with patch('servicenow_api.load_env_file', return_value={}):
+                with self.assertRaises(ConfigurationError) as context:
+                    get_config()
+                self.assertIn("SERVICENOW_CLIENT_ID", str(context.exception))
+
+    def test_get_config_whitespace_client_secret_raises_error(self):
+        """get_config should raise ConfigurationError for whitespace-only client_secret."""
+        env_vars = {
+            "SERVICENOW_INSTANCE": "https://test.service-now.com",
+            "SERVICENOW_CLIENT_ID": "valid-client-id",
+            "SERVICENOW_CLIENT_SECRET": "   "
+        }
+        with patch.dict(os.environ, env_vars, clear=True):
+            with patch('servicenow_api.load_env_file', return_value={}):
+                with self.assertRaises(ConfigurationError) as context:
+                    get_config()
+                self.assertIn("SERVICENOW_CLIENT_SECRET", str(context.exception))
+
+    def test_get_config_whitespace_instance_raises_error(self):
+        """get_config should raise ConfigurationError for whitespace-only instance."""
+        env_vars = {
+            "SERVICENOW_INSTANCE": "   ",
+            "SERVICENOW_API_KEY": "valid-key"
+        }
+        with patch.dict(os.environ, env_vars, clear=True):
+            with patch('servicenow_api.load_env_file', return_value={}):
+                with self.assertRaises(ConfigurationError) as context:
+                    get_config()
+                self.assertIn("SERVICENOW_INSTANCE", str(context.exception))
+
+    def test_get_config_strips_whitespace_from_valid_credentials(self):
+        """get_config should strip leading/trailing whitespace from valid credentials."""
+        env_vars = {
+            "SERVICENOW_INSTANCE": "  https://test.service-now.com  ",
+            "SERVICENOW_API_KEY": "  my-api-key  "
+        }
+        with patch.dict(os.environ, env_vars, clear=True):
+            with patch('servicenow_api.load_env_file', return_value={}):
+                config = get_config()
+                self.assertEqual(config["instance"], "https://test.service-now.com")
+                self.assertEqual(config["api_key"], "my-api-key")
+
+    def test_get_config_strips_whitespace_from_basic_auth(self):
+        """get_config should strip whitespace from basic auth credentials."""
+        env_vars = {
+            "SERVICENOW_INSTANCE": "https://test.service-now.com",
+            "SERVICENOW_USERNAME": "  admin  ",
+            "SERVICENOW_PASSWORD": "  secret123  "
+        }
+        with patch.dict(os.environ, env_vars, clear=True):
+            with patch('servicenow_api.load_env_file', return_value={}):
+                config = get_config()
+                self.assertEqual(config["username"], "admin")
+                self.assertEqual(config["password"], "secret123")
 
 
 # =============================================================================
@@ -888,14 +1052,18 @@ class TestAPIKeyErrorHandling:
                 assert "authentication" in str(exc_info.value).lower()
 
     def test_whitespace_only_api_key_not_treated_as_valid_auth(self):
-        """API key with only whitespace should not be treated as valid authentication."""
+        """API key with only whitespace should raise ConfigurationError.
+
+        SNOW-61: Updated behavior - whitespace-only credentials are now rejected
+        at configuration time with a clear error message, rather than being passed
+        through and failing with a 401 at API call time.
+        """
         with patch.dict(os.environ, {"SERVICENOW_INSTANCE": "https://test.service-now.com", "SERVICENOW_API_KEY": "   "}, clear=True):
             with patch('servicenow_api.load_env_file', return_value={}):
-                # get_config doesn't strip whitespace, so whitespace-only key passes the truthy check
-                # This tests actual behavior - whitespace is considered truthy in Python
-                # The API will reject it with 401, which is tested separately
-                config = get_config()
-                assert config["api_key"] == "   "
+                with pytest.raises(ConfigurationError) as exc_info:
+                    get_config()
+                assert "SERVICENOW_API_KEY" in str(exc_info.value)
+                assert "whitespace" in str(exc_info.value).lower()
 
     @patch('servicenow_api.urlopen')
     def test_api_key_auth_error_message_is_clear(self, mock_urlopen, api_key_config):

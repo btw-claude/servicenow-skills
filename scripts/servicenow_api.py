@@ -174,6 +174,36 @@ def load_env_file(env_path: Optional[Path] = None) -> Dict[str, str]:
     return env_vars
 
 
+def _validate_credential(value: Optional[str], name: str) -> Optional[str]:
+    """
+    Validate and normalize a credential value.
+
+    Strips leading/trailing whitespace and rejects whitespace-only values.
+
+    Args:
+        value: The credential value to validate.
+        name: The name of the credential (for error messages).
+
+    Returns:
+        The stripped credential value, or None if empty/whitespace-only.
+
+    Raises:
+        ConfigurationError: If the value is whitespace-only (not empty).
+    """
+    if value is None:
+        return None
+
+    stripped = value.strip()
+
+    # If original value was non-empty but stripped is empty, it was whitespace-only
+    if value and not stripped:
+        raise ConfigurationError(
+            f"{name} contains only whitespace. Please provide a valid value or remove it from configuration."
+        )
+
+    return stripped if stripped else None
+
+
 def get_config() -> Dict[str, Optional[str]]:
     """
     Get ServiceNow configuration from environment variables.
@@ -185,7 +215,7 @@ def get_config() -> Dict[str, Optional[str]]:
         Dictionary containing ServiceNow configuration.
 
     Raises:
-        ConfigurationError: If required configuration is missing.
+        ConfigurationError: If required configuration is missing or invalid.
     """
     # Load from env file first
     file_vars = load_env_file()
@@ -202,14 +232,24 @@ def get_config() -> Dict[str, Optional[str]]:
                 timeout_str
             )
 
-    # Get configuration with env vars taking precedence
-    config = {
+    # Get raw configuration with env vars taking precedence
+    raw_config = {
         "instance": os.environ.get("SERVICENOW_INSTANCE", file_vars.get("SERVICENOW_INSTANCE")),
         "username": os.environ.get("SERVICENOW_USERNAME", file_vars.get("SERVICENOW_USERNAME")),
         "password": os.environ.get("SERVICENOW_PASSWORD", file_vars.get("SERVICENOW_PASSWORD")),
         "client_id": os.environ.get("SERVICENOW_CLIENT_ID", file_vars.get("SERVICENOW_CLIENT_ID")),
         "client_secret": os.environ.get("SERVICENOW_CLIENT_SECRET", file_vars.get("SERVICENOW_CLIENT_SECRET")),
         "api_key": os.environ.get("SERVICENOW_API_KEY", file_vars.get("SERVICENOW_API_KEY")),
+    }
+
+    # Validate and normalize all credential values
+    config = {
+        "instance": _validate_credential(raw_config["instance"], "SERVICENOW_INSTANCE"),
+        "username": _validate_credential(raw_config["username"], "SERVICENOW_USERNAME"),
+        "password": _validate_credential(raw_config["password"], "SERVICENOW_PASSWORD"),
+        "client_id": _validate_credential(raw_config["client_id"], "SERVICENOW_CLIENT_ID"),
+        "client_secret": _validate_credential(raw_config["client_secret"], "SERVICENOW_CLIENT_SECRET"),
+        "api_key": _validate_credential(raw_config["api_key"], "SERVICENOW_API_KEY"),
         "timeout": timeout_value,
     }
 
