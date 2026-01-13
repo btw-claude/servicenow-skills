@@ -175,6 +175,266 @@ The following fields are returned by default for the `relationships` action:
 
 To customize the fields returned, use the `fields` parameter with a comma-separated list of field names.
 
+## Example Output: Default Fields vs Custom Fields
+
+This section provides concrete examples of what API responses look like when using default fields versus specifying custom fields. Understanding these output formats helps you know what to expect from the API.
+
+### CI Query with Default Fields
+
+When no `fields` parameter is specified, all DEFAULT_FIELDS are returned:
+
+```bash
+echo '{"action": "get", "sys_id": "abc123def456"}' | python scripts/cmdb.py
+```
+
+**Response with DEFAULT_FIELDS:**
+```json
+{
+  "sys_id": "abc123def456",
+  "name": "web-server-prod-01",
+  "sys_class_name": "cmdb_ci_server",
+  "asset_tag": "ASSET-2024-001",
+  "serial_number": "SN-XYZ-789012",
+  "ip_address": "192.168.1.100",
+  "mac_address": "00:1A:2B:3C:4D:5E",
+  "dns_domain": "example.corp",
+  "fqdn": "web-server-prod-01.example.corp",
+  "operational_status": "1",
+  "install_status": "1",
+  "location": {
+    "link": "https://instance.service-now.com/api/now/table/cmn_location/loc123",
+    "value": "loc123"
+  },
+  "department": {
+    "link": "https://instance.service-now.com/api/now/table/cmn_department/dept456",
+    "value": "dept456"
+  },
+  "company": {
+    "link": "https://instance.service-now.com/api/now/table/core_company/comp789",
+    "value": "comp789"
+  },
+  "assigned_to": {
+    "link": "https://instance.service-now.com/api/now/table/sys_user/user001",
+    "value": "user001"
+  },
+  "managed_by": {
+    "link": "https://instance.service-now.com/api/now/table/sys_user/user002",
+    "value": "user002"
+  },
+  "owned_by": {
+    "link": "https://instance.service-now.com/api/now/table/sys_user/user003",
+    "value": "user003"
+  },
+  "supported_by": {
+    "link": "https://instance.service-now.com/api/now/table/sys_user_group/grp001",
+    "value": "grp001"
+  },
+  "manufacturer": {
+    "link": "https://instance.service-now.com/api/now/table/core_company/mfg001",
+    "value": "mfg001"
+  },
+  "model_id": {
+    "link": "https://instance.service-now.com/api/now/table/cmdb_model/mdl001",
+    "value": "mdl001"
+  },
+  "model_number": "PowerEdge R740",
+  "vendor": {
+    "link": "https://instance.service-now.com/api/now/table/core_company/vnd001",
+    "value": "vnd001"
+  },
+  "cost": "5000",
+  "cost_center": {
+    "link": "https://instance.service-now.com/api/now/table/cmn_cost_center/cc001",
+    "value": "cc001"
+  },
+  "purchase_date": "2024-01-15",
+  "warranty_expiration": "2027-01-15",
+  "first_discovered": "2024-01-20 10:30:00",
+  "last_discovered": "2024-06-15 14:22:00",
+  "discovery_source": "ServiceNow Discovery",
+  "environment": "Production",
+  "short_description": "Primary web server for production workloads",
+  "comments": "Migrated from legacy data center in Q1 2024",
+  "active": "true",
+  "sys_created_on": "2024-01-15 09:00:00",
+  "sys_updated_on": "2024-06-15 14:22:00"
+}
+```
+
+### CI Query with Custom Fields
+
+When the `fields` parameter is specified, only the requested fields are returned:
+
+```bash
+echo '{
+  "action": "get",
+  "sys_id": "abc123def456",
+  "fields": "name,ip_address,operational_status,environment"
+}' | python scripts/cmdb.py
+```
+
+**Response with custom fields:**
+```json
+{
+  "name": "web-server-prod-01",
+  "ip_address": "192.168.1.100",
+  "operational_status": "1",
+  "environment": "Production"
+}
+```
+
+### CI Query with Display Values
+
+Using `display_value: "true"` returns human-readable values instead of sys_ids:
+
+```bash
+echo '{
+  "action": "query",
+  "ci_class": "cmdb_ci_server",
+  "limit": 1,
+  "display_value": "true"
+}' | python scripts/cmdb.py
+```
+
+**Response with display values:**
+```json
+[
+  {
+    "sys_id": "abc123def456",
+    "name": "web-server-prod-01",
+    "sys_class_name": "Server",
+    "asset_tag": "ASSET-2024-001",
+    "serial_number": "SN-XYZ-789012",
+    "ip_address": "192.168.1.100",
+    "mac_address": "00:1A:2B:3C:4D:5E",
+    "dns_domain": "example.corp",
+    "fqdn": "web-server-prod-01.example.corp",
+    "operational_status": "Operational",
+    "install_status": "Installed",
+    "location": "New York Data Center",
+    "department": "IT Operations",
+    "company": "Acme Corporation",
+    "assigned_to": "John Smith",
+    "managed_by": "Jane Doe",
+    "owned_by": "Bob Wilson",
+    "supported_by": "Server Support Team",
+    "manufacturer": "Dell",
+    "model_id": "PowerEdge R740",
+    "model_number": "PowerEdge R740",
+    "vendor": "Dell Technologies",
+    "cost": "5000",
+    "cost_center": "IT-INFRA-001",
+    "purchase_date": "2024-01-15",
+    "warranty_expiration": "2027-01-15",
+    "first_discovered": "2024-01-20 10:30:00",
+    "last_discovered": "2024-06-15 14:22:00",
+    "discovery_source": "ServiceNow Discovery",
+    "environment": "Production",
+    "short_description": "Primary web server for production workloads",
+    "comments": "Migrated from legacy data center in Q1 2024",
+    "active": "true",
+    "sys_created_on": "2024-01-15 09:00:00",
+    "sys_updated_on": "2024-06-15 14:22:00"
+  }
+]
+```
+
+### Relationship Query with Default Fields
+
+When no `fields` parameter is specified for relationships, RELATIONSHIP_FIELDS are returned:
+
+```bash
+echo '{"action": "relationships", "sys_id": "abc123def456"}' | python scripts/cmdb.py
+```
+
+**Response with RELATIONSHIP_FIELDS:**
+```json
+[
+  {
+    "sys_id": "rel001abc",
+    "parent": {
+      "link": "https://instance.service-now.com/api/now/table/cmdb_ci/abc123def456",
+      "value": "abc123def456"
+    },
+    "child": {
+      "link": "https://instance.service-now.com/api/now/table/cmdb_ci/db-server-001",
+      "value": "db-server-001"
+    },
+    "type": {
+      "link": "https://instance.service-now.com/api/now/table/cmdb_rel_type/type001",
+      "value": "type001"
+    },
+    "connection_strength": "Always",
+    "port": "3306",
+    "sys_created_on": "2024-02-01 11:00:00",
+    "sys_updated_on": "2024-02-01 11:00:00"
+  },
+  {
+    "sys_id": "rel002def",
+    "parent": {
+      "link": "https://instance.service-now.com/api/now/table/cmdb_ci/load-balancer-001",
+      "value": "load-balancer-001"
+    },
+    "child": {
+      "link": "https://instance.service-now.com/api/now/table/cmdb_ci/abc123def456",
+      "value": "abc123def456"
+    },
+    "type": {
+      "link": "https://instance.service-now.com/api/now/table/cmdb_rel_type/type002",
+      "value": "type002"
+    },
+    "connection_strength": "Always",
+    "port": "443",
+    "sys_created_on": "2024-02-01 11:30:00",
+    "sys_updated_on": "2024-02-01 11:30:00"
+  }
+]
+```
+
+### Relationship Query with Custom Fields
+
+When the `fields` parameter is specified for relationships:
+
+```bash
+echo '{
+  "action": "relationships",
+  "sys_id": "abc123def456",
+  "fields": "parent,child,type",
+  "display_value": "true"
+}' | python scripts/cmdb.py
+```
+
+**Response with custom fields and display values:**
+```json
+[
+  {
+    "parent": "web-server-prod-01",
+    "child": "mysql-db-prod-01",
+    "type": "Depends on::Used by"
+  },
+  {
+    "parent": "prod-load-balancer",
+    "child": "web-server-prod-01",
+    "type": "Routes to::Receives from"
+  }
+]
+```
+
+### Comparing Output Sizes
+
+The following table shows approximate response sizes to help with planning:
+
+| Query Type | Fields | Approximate JSON Size |
+|------------|--------|----------------------|
+| Single CI | Default (34 fields) | ~2-3 KB |
+| Single CI | Custom (5 fields) | ~200-400 bytes |
+| 10 CIs | Default | ~20-30 KB |
+| 10 CIs | Custom (5 fields) | ~2-4 KB |
+| Relationship | Default (8 fields) | ~500 bytes each |
+| Relationship | Custom (3 fields) | ~150 bytes each |
+
+**Tip:** For performance-sensitive operations or when working with large datasets, specify only the fields you need using the `fields` parameter.
+
 ## Related Documentation
 
 For more information about the ServiceNow CMDB, refer to the official documentation:
