@@ -198,7 +198,7 @@ JSON array of incident records matching the query:
     "active": "true"
   },
   {
-    "sys_id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d7",
+    "sys_id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d7e8",
     "number": "INC0010002",
     "short_description": "VPN connection issues",
     "state": "1",
