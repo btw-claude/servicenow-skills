@@ -215,15 +215,18 @@ Store and manage ServiceNow API keys using AWS Secrets Manager:
 
 ```bash
 # Create a new secret for ServiceNow API key
+CREATED_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+EXPIRES_DATE=$(date -u -d '+90 days' +%Y-%m-%dT%H:%M:%SZ)
+
 aws secretsmanager create-secret \
   --name "servicenow/api-key" \
   --description "ServiceNow API key for Claude Code integration" \
-  --secret-string '{
-    "api_key": "your-servicenow-api-key",
-    "instance": "https://your-instance.service-now.com",
-    "created": "2024-01-15T00:00:00Z",
-    "expires": "2024-04-15T00:00:00Z"
-  }'
+  --secret-string "{
+    \"api_key\": \"your-servicenow-api-key\",
+    \"instance\": \"https://your-instance.service-now.com\",
+    \"created\": \"${CREATED_DATE}\",
+    \"expires\": \"${EXPIRES_DATE}\"
+  }"
 
 # Retrieve the current API key
 aws secretsmanager get-secret-value \
@@ -231,14 +234,17 @@ aws secretsmanager get-secret-value \
   --query 'SecretString' --output text | jq -r '.api_key'
 
 # Update/rotate the API key (creates new version, previous version retained)
+CREATED_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+EXPIRES_DATE=$(date -u -d '+90 days' +%Y-%m-%dT%H:%M:%SZ)
+
 aws secretsmanager put-secret-value \
   --secret-id "servicenow/api-key" \
-  --secret-string '{
-    "api_key": "new-servicenow-api-key",
-    "instance": "https://your-instance.service-now.com",
-    "created": "2024-04-15T00:00:00Z",
-    "expires": "2024-07-15T00:00:00Z"
-  }'
+  --secret-string "{
+    \"api_key\": \"new-servicenow-api-key\",
+    \"instance\": \"https://your-instance.service-now.com\",
+    \"created\": \"${CREATED_DATE}\",
+    \"expires\": \"${EXPIRES_DATE}\"
+  }"
 
 # List secret version history
 aws secretsmanager list-secret-version-ids \
@@ -273,12 +279,40 @@ Example script to load API key from AWS Secrets Manager into environment:
 # load-servicenow-credentials.sh
 # Source this script to populate environment variables from AWS Secrets Manager
 
+set -euo pipefail
+
+# Retrieve secret from AWS Secrets Manager
 SECRET_JSON=$(aws secretsmanager get-secret-value \
   --secret-id "servicenow/api-key" \
-  --query 'SecretString' --output text)
+  --query 'SecretString' --output text 2>&1) || {
+    echo "Error: Failed to retrieve secret from AWS Secrets Manager" >&2
+    echo "Details: $SECRET_JSON" >&2
+    return 1
+}
 
-export SERVICENOW_INSTANCE=$(echo "$SECRET_JSON" | jq -r '.instance')
-export SERVICENOW_API_KEY=$(echo "$SECRET_JSON" | jq -r '.api_key')
+# Parse and export instance URL
+SERVICENOW_INSTANCE=$(echo "$SECRET_JSON" | jq -r '.instance') || {
+    echo "Error: Failed to parse 'instance' from secret JSON" >&2
+    return 1
+}
+if [[ -z "$SERVICENOW_INSTANCE" || "$SERVICENOW_INSTANCE" == "null" ]]; then
+    echo "Error: 'instance' field is missing or empty in secret" >&2
+    return 1
+fi
+export SERVICENOW_INSTANCE
+
+# Parse and export API key
+SERVICENOW_API_KEY=$(echo "$SECRET_JSON" | jq -r '.api_key') || {
+    echo "Error: Failed to parse 'api_key' from secret JSON" >&2
+    return 1
+}
+if [[ -z "$SERVICENOW_API_KEY" || "$SERVICENOW_API_KEY" == "null" ]]; then
+    echo "Error: 'api_key' field is missing or empty in secret" >&2
+    return 1
+fi
+export SERVICENOW_API_KEY
+
+echo "ServiceNow credentials loaded successfully" >&2
 ```
 
 ### General Security Guidelines
