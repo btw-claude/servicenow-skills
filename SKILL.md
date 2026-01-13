@@ -139,6 +139,10 @@ Not all errors should trigger immediate retries. Use the following guidance:
 **Recommended Retry Pattern:**
 
 ```python
+# NOTE: This is an illustrative pattern - adapt exception handling to your implementation.
+# RetryableError represents a custom exception you would define for your use case,
+# e.g., class RetryableError(Exception): pass
+
 import time
 import random
 
@@ -149,7 +153,7 @@ def retry_with_backoff(func, max_retries=3, base_delay=1):
     for attempt in range(max_retries):
         try:
             return func()
-        except RetryableError as e:
+        except RetryableError as e:  # Replace with your specific retryable exception(s)
             if attempt == max_retries - 1:
                 raise
             delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
@@ -222,18 +226,25 @@ When receiving a `429` response:
 4. **Log rate limit events** for capacity planning
 
 ```python
-def handle_rate_limit(response):
+# NOTE: This is an illustrative pattern demonstrating rate limit handling logic.
+# Integrate this into your retry loop, passing the current attempt number.
+
+def handle_rate_limit(response, attempt_number=0):
     """
     Handle rate limit response with appropriate backoff.
+
+    Args:
+        response: The HTTP response object from the rate-limited request.
+        attempt_number: Current retry attempt (0-indexed) for exponential backoff calculation.
     """
     retry_after = response.headers.get('Retry-After')
     if retry_after:
         wait_time = int(retry_after)
     else:
-        # Default exponential backoff
+        # Default exponential backoff (capped at 60 seconds)
         wait_time = min(60, 2 ** attempt_number)
 
-    # Add jitter (10-20% randomization)
+    # Add jitter (10-20% randomization) to prevent thundering herd
     jitter = wait_time * random.uniform(0.1, 0.2)
     time.sleep(wait_time + jitter)
 ```
