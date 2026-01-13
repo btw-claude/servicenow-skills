@@ -511,7 +511,7 @@ When requesting a CI that does not exist:
 echo '{"action": "get", "sys_id": "nonexistent123456789012345678901"}' | python scripts/cmdb.py
 ```
 
-**Error response:**
+**Error response (HTTP 404 Not Found):**
 ```json
 {
   "error": {
@@ -530,7 +530,7 @@ When providing invalid or malformed parameters:
 echo '{"action": "query", "ci_class": "invalid_class_name"}' | python scripts/cmdb.py
 ```
 
-**Error response:**
+**Error response (HTTP 400 Bad Request):**
 ```json
 {
   "error": {
@@ -547,7 +547,7 @@ Another example with missing required parameters:
 echo '{"action": "get"}' | python scripts/cmdb.py
 ```
 
-**Error response:**
+**Error response (HTTP 400 Bad Request):**
 ```json
 {
   "error": {
@@ -566,7 +566,7 @@ When the authenticated user lacks permission to access the requested resource:
 echo '{"action": "get", "sys_id": "restricted12345678901234567890123"}' | python scripts/cmdb.py
 ```
 
-**Error response:**
+**Error response (HTTP 403 Forbidden):**
 ```json
 {
   "error": {
@@ -581,7 +581,7 @@ echo '{"action": "get", "sys_id": "restricted12345678901234567890123"}' | python
 
 When API credentials are invalid or expired:
 
-**Error response:**
+**Error response (HTTP 401 Unauthorized):**
 ```json
 {
   "error": {
