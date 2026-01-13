@@ -2,6 +2,21 @@
 
 Check the status of service catalog requests and query requests in ServiceNow.
 
+> **Navigation:** [Back to Skill Index](../../SKILL.md) | [Browse Catalog](./browse-catalog.md) | [Search Catalog](./search-catalog.md)
+
+## Table of Contents
+
+- [Script](#script)
+- [Operations](#operations)
+  - [Get Request Status](#get-request-status)
+  - [Query Requests](#query-requests)
+- [Request Fields](#request-fields)
+- [Request Item Fields](#request-item-fields)
+- [Output](#output)
+- [Related Documentation](#related-documentation)
+- [Related Domains](#related-domains)
+- [Errors](#errors)
+
 ## Script
 
 ```bash
@@ -312,6 +327,27 @@ Returns an empty array `[]` if no requests match the query criteria.
 
 - [Browse Catalog](browse-catalog.md) - For browsing catalog categories and items
 - [Search Catalog](search-catalog.md) - For text-based searching of categories and items
+
+## Related Domains
+
+Service catalog requests often relate to other ServiceNow domains. Consider these related skills for comprehensive request tracking:
+
+### Incident Management
+Track requests related to incident resolution:
+- **[Get Incident](../incidents/get-incident.md)** - Retrieve incident details associated with catalog requests
+- **[Query Incidents](../incidents/query-incidents.md)** - Find incidents that triggered catalog requests
+
+### Problem Management
+Track requests created as part of problem resolution:
+- **[Get Problem](../problems/get-problem.md)** - Retrieve problem details associated with catalog requests
+- **[Query Problems](../problems/query-problems.md)** - Find problems with pending catalog requests
+
+### Change Management
+Track requests that trigger or are associated with changes:
+- **[Get Change Request](../changes/get-change.md)** - Retrieve change request details initiated through catalog requests
+- **[Query Change Requests](../changes/query-changes.md)** - Find changes associated with catalog requests
+
+> **Tip:** When a catalog request triggers a change, monitor both the request status and the associated change status for complete visibility.
 
 ## Errors
 

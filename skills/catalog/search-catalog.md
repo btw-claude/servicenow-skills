@@ -2,6 +2,19 @@
 
 Search service catalog categories and items by text in ServiceNow.
 
+> **Navigation:** [Back to Skill Index](../../SKILL.md) | [Browse Catalog](./browse-catalog.md) | [Request Status](./request-status.md)
+
+## Table of Contents
+
+- [Script](#script)
+- [Input](#input)
+- [Examples](#examples)
+- [Search Behavior](#search-behavior)
+- [Output](#output)
+- [Related Documentation](#related-documentation)
+- [Related Domains](#related-domains)
+- [Errors](#errors)
+
 ## Script
 
 ```bash
@@ -172,6 +185,27 @@ When searching only categories or items, the other array will be empty:
 
 - [Browse Catalog](browse-catalog.md) - For browsing categories and items by hierarchy and filtering
 - [Request Status](request-status.md) - For checking the status of submitted catalog requests
+
+## Related Domains
+
+Service catalog items often relate to other ServiceNow domains. Consider these related skills for comprehensive service management:
+
+### Incident Management
+Search for catalog items that may help resolve incidents:
+- **[Get Incident](../incidents/get-incident.md)** - Retrieve incident details to identify needed catalog items
+- **[Query Incidents](../incidents/query-incidents.md)** - Find incidents that may require catalog item requests
+
+### Problem Management
+Search for catalog items related to problem resolution:
+- **[Get Problem](../problems/get-problem.md)** - Retrieve problem details to identify remediation options
+- **[Query Problems](../problems/query-problems.md)** - Find problems that may benefit from catalog-based solutions
+
+### Change Management
+Search for standard change templates and change-related catalog items:
+- **[Get Change Request](../changes/get-change.md)** - Retrieve change request details for catalog-initiated changes
+- **[Query Change Requests](../changes/query-changes.md)** - Find changes that may be fulfilled through catalog items
+
+> **Tip:** Search for "standard change" to find pre-approved change templates that can expedite common changes.
 
 ## Errors
 

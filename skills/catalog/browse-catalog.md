@@ -2,6 +2,21 @@
 
 Browse service catalog categories and items in ServiceNow.
 
+> **Navigation:** [Back to Skill Index](../../SKILL.md) | [Search Catalog](./search-catalog.md) | [Request Status](./request-status.md)
+
+## Table of Contents
+
+- [Script](#script)
+- [Operations](#operations)
+  - [List Categories](#list-categories)
+  - [List Catalog Items](#list-catalog-items)
+- [Category Fields](#category-fields)
+- [Item Fields](#item-fields)
+- [Output](#output)
+- [Related Documentation](#related-documentation)
+- [Related Domains](#related-domains)
+- [Errors](#errors)
+
 ## Script
 
 ```bash
@@ -232,6 +247,27 @@ Returns an empty array `[]` if no records match the criteria.
 
 - [Search Catalog](search-catalog.md) - For text-based searching of categories and items by name or description
 - [Request Status](request-status.md) - For checking the status of submitted catalog requests
+
+## Related Domains
+
+Service catalog items often relate to other ServiceNow domains. Consider these related skills for comprehensive service management:
+
+### Incident Management
+Catalog items may be related to incident resolution:
+- **[Get Incident](../incidents/get-incident.md)** - Retrieve incident details when catalog items are requested for incident resolution
+- **[Query Incidents](../incidents/query-incidents.md)** - Find incidents that may require catalog item requests
+
+### Problem Management
+Catalog items may be part of problem resolution workflows:
+- **[Get Problem](../problems/get-problem.md)** - Retrieve problem details when catalog items address known issues
+- **[Query Problems](../problems/query-problems.md)** - Find problems that may require catalog item requests
+
+### Change Management
+Some catalog items trigger change requests:
+- **[Get Change Request](../changes/get-change.md)** - Retrieve change request details for catalog-initiated changes
+- **[Query Change Requests](../changes/query-changes.md)** - Find changes initiated through the service catalog
+
+> **Tip:** Standard change templates in the catalog can streamline the change management process for common, low-risk changes.
 
 ## Errors
 

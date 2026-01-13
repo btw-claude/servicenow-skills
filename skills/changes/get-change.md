@@ -2,6 +2,21 @@
 
 Retrieve change request details from ServiceNow by sys_id or change number.
 
+> **Navigation:** [Back to Skill Index](../../SKILL.md) | [Query Change Requests](./query-changes.md)
+
+## Table of Contents
+
+- [Script](#script)
+- [Operations](#operations)
+  - [Get by sys_id](#get-by-sys_id)
+  - [Get by Number](#get-by-number)
+- [Parameters](#parameters)
+  - [Fields Parameter](#fields-parameter)
+  - [Display Value Parameter](#display-value-parameter)
+- [Output](#output)
+- [Related Domains](#related-domains)
+- [Errors](#errors)
+
 ## Script
 
 ```bash
@@ -156,6 +171,28 @@ JSON object containing the change request record:
   "cab_required": "false"
 }
 ```
+
+## Related Domains
+
+Change requests often intersect with other ServiceNow domains. Consider these related skills for comprehensive change management:
+
+### Incident Management
+Changes may cause incidents or be created in response to incidents:
+- **[Get Incident](../incidents/get-incident.md)** - Retrieve details of incidents that may be related to this change
+- **[Query Incidents](../incidents/query-incidents.md)** - Search for incidents caused by or related to changes
+
+> **Tip:** After implementing a change, monitor for new incidents to identify any change-related issues.
+
+### Problem Management
+Changes are often created to resolve underlying problems:
+- **[Get Problem](../problems/get-problem.md)** - Retrieve details of problems that triggered this change
+- **[Query Problems](../problems/query-problems.md)** - Search for problems in "Pending Change" state waiting for this change
+
+### Service Catalog
+Changes may be requested through the service catalog:
+- **[Browse Catalog](../catalog/browse-catalog.md)** - Browse available service catalog items related to change requests
+- **[Search Catalog](../catalog/search-catalog.md)** - Search for standard change templates in the catalog
+- **[Request Status](../catalog/request-status.md)** - Track the status of catalog-initiated change requests
 
 ## Errors
 
