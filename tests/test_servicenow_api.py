@@ -739,6 +739,76 @@ class TestServiceNowClientRequests(unittest.TestCase):
         self.assertEqual(result, {})
 
 
+# =============================================================================
+# Unit Tests - API Key Authentication Priority (SNOW-58)
+# =============================================================================
+
+class TestAPIKeyAuthenticationPriority(unittest.TestCase):
+    """Test that API key authentication takes precedence over other auth methods.
+
+    SNOW-58: Verify API key authentication is used when multiple auth methods
+    are configured. API key should take precedence over Basic auth and OAuth.
+    """
+
+    def test_api_key_takes_precedence_over_basic_auth(self):
+        """API key should be used when both API key and basic auth are configured."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": "admin",
+            "password": "secret",
+            "client_id": None,
+            "client_secret": None,
+            "api_key": "test-api-key-123",
+        }
+        client = ServiceNowClient(config)
+
+        header = client._get_auth_header()
+
+        # Should use Bearer token (API key) not Basic auth
+        self.assertEqual(header["Authorization"], "Bearer test-api-key-123")
+        self.assertFalse(header["Authorization"].startswith("Basic "))
+
+    def test_api_key_takes_precedence_over_oauth(self):
+        """API key should be used when both API key and OAuth are configured."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": None,
+            "password": None,
+            "client_id": "test-client-id",
+            "client_secret": "test-client-secret",
+            "api_key": "test-api-key-456",
+        }
+        client = ServiceNowClient(config)
+
+        header = client._get_auth_header()
+
+        # Should use API key's Bearer token, not OAuth token
+        self.assertEqual(header["Authorization"], "Bearer test-api-key-456")
+        # OAuth token should not have been fetched
+        self.assertIsNone(client._access_token)
+
+    def test_api_key_takes_precedence_over_all_auth_methods(self):
+        """API key should be used when all three auth methods are configured."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": "admin",
+            "password": "secret",
+            "client_id": "test-client-id",
+            "client_secret": "test-client-secret",
+            "api_key": "test-api-key-789",
+        }
+        client = ServiceNowClient(config)
+
+        header = client._get_auth_header()
+
+        # Should use API key's Bearer token
+        self.assertEqual(header["Authorization"], "Bearer test-api-key-789")
+        # Should not use Basic auth
+        self.assertFalse(header["Authorization"].startswith("Basic "))
+        # OAuth token should not have been fetched
+        self.assertIsNone(client._access_token)
+
+
 class TestServiceNowClientOAuth(unittest.TestCase):
     """Test ServiceNowClient OAuth authentication."""
 
