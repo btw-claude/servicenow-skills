@@ -886,6 +886,25 @@ class TestCompaniesScript(unittest.TestCase):
             self.assertIsInstance(result, list)
             mock_instance.get.assert_called_once()
 
+    def test_companies_search_with_empty_string_raises_validation_error(self):
+        """companies.py search should raise ValidationError for empty string search term.
+
+        This complements test_companies_search_with_only_whitespace_processes_request
+        by testing the empty string "" edge case. Empty strings are falsy in Python,
+        so they fail the 'if not search_term' validation check.
+        """
+        with patch('companies.create_client') as mock_client:
+            mock_client.return_value = MagicMock()
+
+            # Empty string "" is falsy, so it should raise ValidationError
+            with self.assertRaises(self.ValidationError) as context:
+                self.dispatch_action({
+                    "action": "search",
+                    "search_term": ""
+                })
+
+            self.assertIn("search_term is required", str(context.exception))
+
     def test_companies_search_with_null_bytes(self):
         """companies.py search should handle null byte characters."""
         with patch('companies.create_client') as mock_client:
