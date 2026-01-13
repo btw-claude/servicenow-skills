@@ -5,7 +5,7 @@ ServiceNow Change Request Operations Module
 Provides change request management operations for ServiceNow ITSM.
 Actions: get, get_by_number, query
 Table: change_request
-Query params: state, type, risk, assignment_group, active
+Query params: state, change_type, risk, assignment_group, active
 """
 
 import sys
@@ -82,6 +82,7 @@ def get_change(
         client: ServiceNow API client.
         sys_id: The sys_id of the change request to retrieve.
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_FIELDS if not specified.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -94,10 +95,13 @@ def get_change(
     if not sys_id:
         raise ValidationError("sys_id is required for get action")
 
+    # Use DEFAULT_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
+
     result = client.get(
         table=TABLE_NAME,
         sys_id=sys_id,
-        fields=fields,
+        fields=effective_fields,
         display_value=display_value,
     )
 
@@ -117,6 +121,7 @@ def get_change_by_number(
         client: ServiceNow API client.
         number: The change request number (e.g., 'CHG0010001').
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_FIELDS if not specified.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -130,10 +135,13 @@ def get_change_by_number(
 
     query = f"number={number}"
 
+    # Use DEFAULT_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
+
     result = client.get(
         table=TABLE_NAME,
         query=query,
-        fields=fields,
+        fields=effective_fields,
         limit=1,
         display_value=display_value,
     )
@@ -145,7 +153,7 @@ def get_change_by_number(
 def query_changes(
     client: ServiceNowClient,
     state: Optional[str] = None,
-    type: Optional[str] = None,
+    change_type: Optional[str] = None,
     risk: Optional[str] = None,
     assignment_group: Optional[str] = None,
     active: Optional[bool] = None,
@@ -163,12 +171,13 @@ def query_changes(
         client: ServiceNow API client.
         state: Filter by change state (-5=New, -4=Assess, -3=Authorize,
                -2=Scheduled, -1=Implement, 0=Review, 3=Closed, 4=Canceled).
-        type: Filter by change type (standard, normal, emergency).
+        change_type: Filter by change type (standard, normal, emergency).
         risk: Filter by risk level (1=High, 2=Moderate, 3=Low).
         assignment_group: Filter by assignment group name or sys_id.
         active: Filter by active status (true/false).
         query: Additional encoded query string to append.
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_FIELDS if not specified.
         limit: Maximum number of records to return.
         offset: Starting record index for pagination.
         order_by: Field to sort by (prefix with - for descending).
@@ -183,8 +192,8 @@ def query_changes(
     if state is not None:
         query_parts.append(f"state={state}")
 
-    if type is not None:
-        query_parts.append(f"type={type}")
+    if change_type is not None:
+        query_parts.append(f"type={change_type}")
 
     if risk is not None:
         query_parts.append(f"risk={risk}")
@@ -204,10 +213,13 @@ def query_changes(
     # Combine query parts with ^ (AND) operator
     full_query = "^".join(query_parts) if query_parts else None
 
+    # Use DEFAULT_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
+
     result = client.get(
         table=TABLE_NAME,
         query=full_query,
-        fields=fields,
+        fields=effective_fields,
         limit=limit,
         offset=offset,
         order_by=order_by,
@@ -270,7 +282,7 @@ def dispatch_action(params: Dict[str, Any]) -> Any:
         return query_changes(
             client=client,
             state=params.get("state"),
-            type=params.get("type"),
+            change_type=params.get("change_type"),
             risk=params.get("risk"),
             assignment_group=params.get("assignment_group"),
             active=params.get("active"),
