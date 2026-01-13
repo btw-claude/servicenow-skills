@@ -6,6 +6,12 @@ Provides incident management operations for ServiceNow ITSM.
 Actions: get, get_by_number, query
 Table: incident
 Query params: state, urgency, impact, assignment_group, active
+
+DEFAULT_FIELDS constant defines: sys_id, number, short_description,
+description, state, urgency, impact, priority, assignment_group, assigned_to,
+caller_id, category, subcategory, opened_at, opened_by, resolved_at,
+resolved_by, closed_at, closed_by, close_code, close_notes, active,
+sys_created_on, sys_updated_on.
 """
 
 from typing import Any, Dict, List, Optional

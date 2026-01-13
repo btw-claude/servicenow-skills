@@ -6,6 +6,17 @@ Provides Configuration Management Database (CMDB) operations for ServiceNow.
 Actions: get, get_by_name, query, search, relationships, by_ip, by_serial
 Tables: cmdb_ci, cmdb_rel_ci
 Query params: ci_class, operational_status, location
+
+DEFAULT_FIELDS constant defines: sys_id, name, sys_class_name, asset_tag,
+serial_number, ip_address, mac_address, dns_domain, fqdn, operational_status,
+install_status, location, department, company, assigned_to, managed_by,
+owned_by, supported_by, manufacturer, model_id, model_number, vendor, cost,
+cost_center, purchase_date, warranty_expiration, first_discovered,
+last_discovered, discovery_source, environment, short_description, comments,
+active, sys_created_on, sys_updated_on.
+
+RELATIONSHIP_FIELDS constant defines: sys_id, parent, child, type,
+connection_strength, port, sys_created_on, sys_updated_on.
 """
 
 from typing import Any, Dict, List, Optional
