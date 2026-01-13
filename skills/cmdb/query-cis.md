@@ -88,6 +88,12 @@ Common CI classes in ServiceNow CMDB:
 | 5 | Ready |
 | 6 | Retired |
 
+## Default Fields
+
+**When no `fields` parameter is specified, the DEFAULT_FIELDS are returned.** See [CMDB.md](CMDB.md#ci-default-fields-default_fields) for the complete list of default fields.
+
+To retrieve specific fields only, use the `fields` parameter with a comma-separated list of field names.
+
 ## Examples
 
 ### Query All Servers

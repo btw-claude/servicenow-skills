@@ -133,7 +133,7 @@ echo '{
 
 ## Relationship Fields
 
-Common fields in relationship records:
+**When no `fields` parameter is specified, the following default fields (RELATIONSHIP_FIELDS) are returned:**
 
 - `sys_id` - Unique system identifier for the relationship
 - `parent` - Reference to the parent CI

@@ -118,7 +118,7 @@ echo '{
 
 ### Fields Parameter
 
-Specify which fields to include in the response. Common CI fields:
+Specify which fields to include in the response. **When no `fields` parameter is specified, the following default fields (DEFAULT_FIELDS) are returned:**
 
 - `sys_id` - Unique system identifier
 - `name` - CI name
