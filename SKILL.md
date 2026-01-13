@@ -25,6 +25,13 @@ SERVICENOW_CLIENT_ID=your-client-id
 SERVICENOW_CLIENT_SECRET=your-client-secret
 ```
 
+Or, you can use API key authentication:
+
+```
+SERVICENOW_INSTANCE=https://your-instance.service-now.com
+SERVICENOW_API_KEY=your-api-key
+```
+
 The credentials require appropriate ServiceNow roles for the operations you intend to perform (e.g., `itil`, `itil_admin`, `catalog_admin`).
 
 ### Authentication Method Recommendations
@@ -33,8 +40,25 @@ The credentials require appropriate ServiceNow roles for the operations you inte
 |-------------|-------------------|-----------|
 | **Development** | Username/Password | Simpler setup for local development and testing. Easier to rotate credentials during development cycles. |
 | **Production** | OAuth 2.0 | More secure token-based authentication. Supports token refresh without exposing credentials. Better audit trail and access control. |
+| **Service Integrations** | API Key | Ideal for server-to-server integrations and automated workflows. Simpler than OAuth for non-interactive scenarios. No token refresh management required. |
 
 **Note:** For production environments, OAuth 2.0 is strongly recommended as it provides better security through short-lived tokens, avoids storing plain-text passwords, and integrates better with enterprise identity management systems.
+
+### API Key Security Considerations
+
+When using API key authentication, follow these security best practices:
+
+1. **Key Rotation**: Regularly rotate API keys (recommended every 90 days) to limit exposure from compromised credentials.
+
+2. **Least Privilege**: Create API keys with the minimum required permissions for your integration. Avoid using admin-level keys for routine operations.
+
+3. **Secure Storage**: Never commit API keys to version control. Use environment variables or secure secret management solutions (e.g., HashiCorp Vault, AWS Secrets Manager).
+
+4. **Access Logging**: Enable API access logging in ServiceNow to monitor key usage and detect anomalies.
+
+5. **IP Restrictions**: Where possible, configure IP allowlists in ServiceNow to restrict API key usage to known source addresses.
+
+6. **Separate Keys per Integration**: Use distinct API keys for different integrations to enable granular access control and easier revocation if needed.
 
 ## Available Operations
 
