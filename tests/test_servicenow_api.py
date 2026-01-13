@@ -787,6 +787,344 @@ class TestUtilityFunctions(unittest.TestCase):
 
 
 # =============================================================================
+# Unit Tests - Timeout Scenarios (SNOW-36)
+# =============================================================================
+
+class TestTimeoutScenarios(unittest.TestCase):
+    """Test timeout handling scenarios."""
+
+    def setUp(self):
+        """Create client with mock config."""
+        self.config = {
+            "instance": "https://test.service-now.com",
+            "username": "admin",
+            "password": "secret",
+            "client_id": None,
+            "client_secret": None,
+            "api_key": None,
+        }
+
+    @patch('servicenow_api.urlopen')
+    def test_request_timeout_raises_servicenow_error(self, mock_urlopen):
+        """Request timeout should raise ServiceNowError."""
+        import socket
+        mock_urlopen.side_effect = URLError(socket.timeout("timed out"))
+
+        client = ServiceNowClient(self.config, timeout=5)
+
+        with self.assertRaises(ServiceNowError) as context:
+            client.get("incident")
+
+        self.assertIn("connect", str(context.exception).lower())
+
+    @patch('servicenow_api.urlopen')
+    def test_oauth_timeout_raises_auth_error(self, mock_urlopen):
+        """OAuth token request timeout should raise AuthenticationError."""
+        import socket
+        mock_urlopen.side_effect = URLError(socket.timeout("timed out"))
+
+        config = self.config.copy()
+        config["username"] = None
+        config["password"] = None
+        config["client_id"] = "test-client"
+        config["client_secret"] = "test-secret"
+        client = ServiceNowClient(config, timeout=5)
+
+        with self.assertRaises(AuthenticationError) as context:
+            client._obtain_oauth_token()
+
+        self.assertIn("connect", str(context.exception).lower())
+
+    @patch('servicenow_api.urlopen')
+    def test_custom_timeout_used_in_request(self, mock_urlopen):
+        """Custom timeout should be passed to urlopen."""
+        mock_response = MagicMock()
+        mock_response.read.return_value = b'{"result": []}'
+        mock_response.__enter__ = Mock(return_value=mock_response)
+        mock_response.__exit__ = Mock(return_value=False)
+        mock_urlopen.return_value = mock_response
+
+        client = ServiceNowClient(self.config, timeout=120)
+        client.get("incident")
+
+        # Verify timeout was passed to urlopen
+        call_args = mock_urlopen.call_args
+        self.assertEqual(call_args[1]["timeout"], 120)
+
+    @patch('servicenow_api.urlopen')
+    def test_default_timeout_used_when_not_specified(self, mock_urlopen):
+        """Default timeout should be used when not specified."""
+        mock_response = MagicMock()
+        mock_response.read.return_value = b'{"result": []}'
+        mock_response.__enter__ = Mock(return_value=mock_response)
+        mock_response.__exit__ = Mock(return_value=False)
+        mock_urlopen.return_value = mock_response
+
+        client = ServiceNowClient(self.config)  # No timeout specified
+        client.get("incident")
+
+        # Verify default timeout (30) was passed to urlopen
+        call_args = mock_urlopen.call_args
+        self.assertEqual(call_args[1]["timeout"], 30)
+
+
+# =============================================================================
+# Unit Tests - Retry Logic (SNOW-36)
+# =============================================================================
+
+class TestRetryLogic(unittest.TestCase):
+    """Test retry logic for OAuth 401 scenarios."""
+
+    def setUp(self):
+        """Create client with OAuth config."""
+        self.config = {
+            "instance": "https://test.service-now.com",
+            "username": None,
+            "password": None,
+            "client_id": "test-client-id",
+            "client_secret": "test-client-secret",
+            "api_key": None,
+        }
+
+    @patch('servicenow_api.urlopen')
+    def test_oauth_401_retry_clears_token(self, mock_urlopen):
+        """OAuth 401 should clear cached token and retry."""
+        # First call - get initial token
+        token_response = MagicMock()
+        token_response.read.return_value = b'{"access_token": "old-token", "token_type": "Bearer"}'
+        token_response.__enter__ = Mock(return_value=token_response)
+        token_response.__exit__ = Mock(return_value=False)
+
+        # Second call - API request fails with 401
+        mock_401_error = HTTPError(
+            url="https://test.service-now.com/api/now/table/incident",
+            code=401,
+            msg="Unauthorized",
+            hdrs={},
+            fp=BytesIO(b'{"error": "Token expired"}')
+        )
+
+        # Third call - get new token
+        new_token_response = MagicMock()
+        new_token_response.read.return_value = b'{"access_token": "new-token", "token_type": "Bearer"}'
+        new_token_response.__enter__ = Mock(return_value=new_token_response)
+        new_token_response.__exit__ = Mock(return_value=False)
+
+        # Fourth call - retry succeeds
+        api_response = MagicMock()
+        api_response.read.return_value = b'{"result": []}'
+        api_response.__enter__ = Mock(return_value=api_response)
+        api_response.__exit__ = Mock(return_value=False)
+
+        mock_urlopen.side_effect = [token_response, mock_401_error, new_token_response, api_response]
+
+        client = ServiceNowClient(self.config)
+        client.get("incident")
+
+        # Verify new token is used after retry
+        self.assertEqual(client._access_token, "new-token")
+
+    @patch('servicenow_api.urlopen')
+    def test_oauth_401_no_infinite_retry(self, mock_urlopen):
+        """OAuth should not retry infinitely on persistent 401."""
+        # First call - get initial token
+        token_response = MagicMock()
+        token_response.read.return_value = b'{"access_token": "bad-token", "token_type": "Bearer"}'
+        token_response.__enter__ = Mock(return_value=token_response)
+        token_response.__exit__ = Mock(return_value=False)
+
+        # Second call - API request fails with 401
+        mock_401_error = HTTPError(
+            url="https://test.service-now.com/api/now/table/incident",
+            code=401,
+            msg="Unauthorized",
+            hdrs={},
+            fp=BytesIO(b'{"error": "Invalid credentials"}')
+        )
+
+        # Third call - get new token
+        new_token_response = MagicMock()
+        new_token_response.read.return_value = b'{"access_token": "still-bad-token", "token_type": "Bearer"}'
+        new_token_response.__enter__ = Mock(return_value=new_token_response)
+        new_token_response.__exit__ = Mock(return_value=False)
+
+        # Fourth call - retry also fails with 401
+        mock_401_error_2 = HTTPError(
+            url="https://test.service-now.com/api/now/table/incident",
+            code=401,
+            msg="Unauthorized",
+            hdrs={},
+            fp=BytesIO(b'{"error": "Still invalid"}')
+        )
+
+        mock_urlopen.side_effect = [token_response, mock_401_error, new_token_response, mock_401_error_2]
+
+        client = ServiceNowClient(self.config)
+
+        # Should raise AuthenticationError after retry fails
+        with self.assertRaises(AuthenticationError):
+            client.get("incident")
+
+        # Should have made exactly 4 calls (no infinite loop)
+        self.assertEqual(mock_urlopen.call_count, 4)
+
+    @patch('servicenow_api.urlopen')
+    def test_basic_auth_401_no_retry(self, mock_urlopen):
+        """Basic auth 401 should not trigger retry logic."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": "admin",
+            "password": "wrong-password",
+            "client_id": None,
+            "client_secret": None,
+            "api_key": None,
+        }
+
+        mock_401_error = HTTPError(
+            url="https://test.service-now.com/api/now/table/incident",
+            code=401,
+            msg="Unauthorized",
+            hdrs={},
+            fp=BytesIO(b'{"error": "Invalid credentials"}')
+        )
+        mock_urlopen.side_effect = mock_401_error
+
+        client = ServiceNowClient(config)
+
+        with self.assertRaises(AuthenticationError):
+            client.get("incident")
+
+        # Basic auth should only make one call (no retry)
+        self.assertEqual(mock_urlopen.call_count, 1)
+
+
+# =============================================================================
+# Unit Tests - Malformed Env Files (SNOW-36)
+# =============================================================================
+
+class TestMalformedEnvFiles(unittest.TestCase):
+    """Test handling of malformed env file content."""
+
+    def test_load_env_file_line_without_equals(self):
+        """load_env_file should skip lines without '=' separator."""
+        env_content = """
+SERVICENOW_INSTANCE=https://test.service-now.com
+MALFORMED_LINE_WITHOUT_EQUALS
+SERVICENOW_USERNAME=admin
+another malformed line
+SERVICENOW_PASSWORD=secret
+"""
+        with patch('builtins.open', unittest.mock.mock_open(read_data=env_content)):
+            with patch.object(Path, 'exists', return_value=True):
+                result = load_env_file(Path("/fake/.claude/env"))
+
+                # Valid lines should be parsed
+                self.assertEqual(result["SERVICENOW_INSTANCE"], "https://test.service-now.com")
+                self.assertEqual(result["SERVICENOW_USERNAME"], "admin")
+                self.assertEqual(result["SERVICENOW_PASSWORD"], "secret")
+                # Malformed lines should be skipped (not causing keys)
+                self.assertNotIn("MALFORMED_LINE_WITHOUT_EQUALS", result)
+                self.assertNotIn("another malformed line", result)
+
+    def test_load_env_file_empty_key(self):
+        """load_env_file should handle lines with empty key before '='."""
+        env_content = """
+=value_without_key
+SERVICENOW_INSTANCE=https://test.service-now.com
+"""
+        with patch('builtins.open', unittest.mock.mock_open(read_data=env_content)):
+            with patch.object(Path, 'exists', return_value=True):
+                result = load_env_file(Path("/fake/.claude/env"))
+
+                # Empty key line creates an empty key (current behavior)
+                self.assertEqual(result.get(""), "value_without_key")
+                self.assertEqual(result["SERVICENOW_INSTANCE"], "https://test.service-now.com")
+
+    def test_load_env_file_empty_value(self):
+        """load_env_file should handle lines with empty value after '='."""
+        env_content = """
+SERVICENOW_INSTANCE=https://test.service-now.com
+EMPTY_VALUE=
+SERVICENOW_USERNAME=admin
+"""
+        with patch('builtins.open', unittest.mock.mock_open(read_data=env_content)):
+            with patch.object(Path, 'exists', return_value=True):
+                result = load_env_file(Path("/fake/.claude/env"))
+
+                self.assertEqual(result["SERVICENOW_INSTANCE"], "https://test.service-now.com")
+                self.assertEqual(result["EMPTY_VALUE"], "")
+                self.assertEqual(result["SERVICENOW_USERNAME"], "admin")
+
+    def test_load_env_file_multiple_equals(self):
+        """load_env_file should handle lines with multiple '=' signs."""
+        env_content = """
+SERVICENOW_INSTANCE=https://test.service-now.com
+URL_WITH_PARAMS=https://example.com?foo=bar&baz=qux
+KEY=value=with=equals
+"""
+        with patch('builtins.open', unittest.mock.mock_open(read_data=env_content)):
+            with patch.object(Path, 'exists', return_value=True):
+                result = load_env_file(Path("/fake/.claude/env"))
+
+                self.assertEqual(result["SERVICENOW_INSTANCE"], "https://test.service-now.com")
+                # Only first '=' should be used as separator
+                self.assertEqual(result["URL_WITH_PARAMS"], "https://example.com?foo=bar&baz=qux")
+                self.assertEqual(result["KEY"], "value=with=equals")
+
+    def test_load_env_file_only_comments(self):
+        """load_env_file should return empty dict for file with only comments."""
+        env_content = """
+# This is a comment
+# Another comment
+#COMMENTED_OUT=value
+"""
+        with patch('builtins.open', unittest.mock.mock_open(read_data=env_content)):
+            with patch.object(Path, 'exists', return_value=True):
+                result = load_env_file(Path("/fake/.claude/env"))
+
+                self.assertEqual(result, {})
+
+    def test_load_env_file_only_empty_lines(self):
+        """load_env_file should return empty dict for file with only empty lines."""
+        env_content = """
+
+
+
+\t
+"""
+        with patch('builtins.open', unittest.mock.mock_open(read_data=env_content)):
+            with patch.object(Path, 'exists', return_value=True):
+                result = load_env_file(Path("/fake/.claude/env"))
+
+                self.assertEqual(result, {})
+
+    def test_load_env_file_key_with_spaces(self):
+        """load_env_file should strip spaces from keys."""
+        env_content = """
+  SERVICENOW_INSTANCE  =https://test.service-now.com
+SERVICENOW_USERNAME = admin
+"""
+        with patch('builtins.open', unittest.mock.mock_open(read_data=env_content)):
+            with patch.object(Path, 'exists', return_value=True):
+                result = load_env_file(Path("/fake/.claude/env"))
+
+                self.assertEqual(result["SERVICENOW_INSTANCE"], "https://test.service-now.com")
+                self.assertEqual(result["SERVICENOW_USERNAME"], "admin")
+
+    def test_load_env_file_inline_comment_not_stripped(self):
+        """load_env_file should not strip inline comments (they become part of value)."""
+        env_content = """
+SERVICENOW_INSTANCE=https://test.service-now.com # production
+"""
+        with patch('builtins.open', unittest.mock.mock_open(read_data=env_content)):
+            with patch.object(Path, 'exists', return_value=True):
+                result = load_env_file(Path("/fake/.claude/env"))
+
+                # Inline comments are not stripped in simple env file parsing
+                self.assertEqual(result["SERVICENOW_INSTANCE"], "https://test.service-now.com # production")
+
+
+# =============================================================================
 # Integration Tests (requires real ServiceNow instance)
 # =============================================================================
 
