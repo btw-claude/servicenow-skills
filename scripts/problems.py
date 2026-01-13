@@ -8,7 +8,6 @@ Table: problem
 Query params: state, priority, assignment_group, known_error, active
 """
 
-import sys
 from typing import Any, Dict, List, Optional
 
 from servicenow_api import (

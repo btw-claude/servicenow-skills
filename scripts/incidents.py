@@ -8,7 +8,6 @@ Table: incident
 Query params: state, urgency, impact, assignment_group, active
 """
 
-import sys
 from typing import Any, Dict, List, Optional
 
 from servicenow_api import (
