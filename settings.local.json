@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Skill(jira)",
+      "Skill(github)",
+      "Skill(confluence)"
+    ],
+    "deny": []
+  }
+}
