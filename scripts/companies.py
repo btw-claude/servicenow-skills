@@ -71,6 +71,7 @@ def get_company(
         client: ServiceNow API client.
         sys_id: The sys_id of the company to retrieve.
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_FIELDS if not specified.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -83,10 +84,13 @@ def get_company(
     if not sys_id:
         raise ValidationError("sys_id is required for get action")
 
+    # Use DEFAULT_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
+
     result = client.get(
         table=TABLE_NAME,
         sys_id=sys_id,
-        fields=fields,
+        fields=effective_fields,
         display_value=display_value,
     )
 
@@ -106,6 +110,7 @@ def get_company_by_name(
         client: ServiceNow API client.
         name: The name of the company (e.g., 'Acme Corporation').
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_FIELDS if not specified.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -119,10 +124,13 @@ def get_company_by_name(
 
     query = f"name={name}"
 
+    # Use DEFAULT_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
+
     result = client.get(
         table=TABLE_NAME,
         query=query,
-        fields=fields,
+        fields=effective_fields,
         limit=1,
         display_value=display_value,
     )
@@ -163,6 +171,7 @@ def query_companies(
         active: Filter by active status (true/false).
         query: Additional encoded query string to append.
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_FIELDS if not specified.
         limit: Maximum number of records to return.
         offset: Starting record index for pagination.
         order_by: Field to sort by (prefix with - for descending).
@@ -209,10 +218,13 @@ def query_companies(
     # Combine query parts with ^ (AND) operator
     full_query = "^".join(query_parts) if query_parts else None
 
+    # Use DEFAULT_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
+
     result = client.get(
         table=TABLE_NAME,
         query=full_query,
-        fields=fields,
+        fields=effective_fields,
         limit=limit,
         offset=offset,
         order_by=order_by,
@@ -238,6 +250,7 @@ def search_companies(
         client: ServiceNow API client.
         search_term: Text to search for in name, city, or stock_symbol fields.
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_FIELDS if not specified.
         limit: Maximum number of records to return.
         offset: Starting record index for pagination.
         order_by: Field to sort by (prefix with - for descending).
@@ -262,10 +275,13 @@ def search_companies(
     # Use OR conditions for search
     search_query = "^OR".join(search_conditions)
 
+    # Use DEFAULT_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
+
     result = client.get(
         table=TABLE_NAME,
         query=search_query,
-        fields=fields,
+        fields=effective_fields,
         limit=limit,
         offset=offset,
         order_by=order_by,
@@ -288,6 +304,7 @@ def get_latest_companies(
         client: ServiceNow API client.
         limit: Maximum number of records to return (default: 10).
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_FIELDS if not specified.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -297,9 +314,12 @@ def get_latest_companies(
     if limit is None:
         limit = 10
 
+    # Use DEFAULT_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
+
     result = client.get(
         table=TABLE_NAME,
-        fields=fields,
+        fields=effective_fields,
         limit=limit,
         order_by="-sys_created_on",
         display_value=display_value,

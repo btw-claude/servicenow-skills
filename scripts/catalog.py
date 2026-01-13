@@ -127,6 +127,7 @@ def get_categories(
         active: Filter by active status (true/false).
         query: Additional encoded query string to append.
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_CATEGORY_FIELDS if not specified.
         limit: Maximum number of records to return.
         offset: Starting record index for pagination.
         order_by: Field to sort by (prefix with - for descending).
@@ -152,10 +153,13 @@ def get_categories(
 
     full_query = "^".join(query_parts) if query_parts else None
 
+    # Use DEFAULT_CATEGORY_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_CATEGORY_FIELDS)
+
     result = client.get(
         table=TABLE_CATEGORY,
         query=full_query,
-        fields=fields,
+        fields=effective_fields,
         limit=limit,
         offset=offset,
         order_by=order_by,
@@ -185,6 +189,7 @@ def get_items(
         active: Filter by active status (true/false).
         query: Additional encoded query string to append.
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_ITEM_FIELDS if not specified.
         limit: Maximum number of records to return.
         offset: Starting record index for pagination.
         order_by: Field to sort by (prefix with - for descending).
@@ -207,10 +212,13 @@ def get_items(
 
     full_query = "^".join(query_parts) if query_parts else None
 
+    # Use DEFAULT_ITEM_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_ITEM_FIELDS)
+
     result = client.get(
         table=TABLE_CAT_ITEM,
         query=full_query,
-        fields=fields,
+        fields=effective_fields,
         limit=limit,
         offset=offset,
         order_by=order_by,
@@ -240,6 +248,8 @@ def search_catalog(
         search_items: Include items in search results.
         active_only: Only return active records.
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_CATEGORY_FIELDS for categories,
+            DEFAULT_ITEM_FIELDS for items if not specified.
         limit: Maximum number of records to return per type.
         display_value: Optional display value setting ('true', 'false', 'all').
 
@@ -269,10 +279,13 @@ def search_catalog(
 
         category_query = "^".join(category_query_parts)
 
+        # Use DEFAULT_CATEGORY_FIELDS when no specific fields are requested
+        category_fields = fields if fields is not None else ",".join(DEFAULT_CATEGORY_FIELDS)
+
         category_result = client.get(
             table=TABLE_CATEGORY,
             query=category_query,
-            fields=fields,
+            fields=category_fields,
             limit=limit,
             display_value=display_value,
         )
@@ -287,10 +300,13 @@ def search_catalog(
 
         item_query = "^".join(item_query_parts)
 
+        # Use DEFAULT_ITEM_FIELDS when no specific fields are requested
+        item_fields = fields if fields is not None else ",".join(DEFAULT_ITEM_FIELDS)
+
         item_result = client.get(
             table=TABLE_CAT_ITEM,
             query=item_query,
-            fields=fields,
+            fields=item_fields,
             limit=limit,
             display_value=display_value,
         )
@@ -316,6 +332,8 @@ def get_request_status(
         request_sys_id: The request sys_id.
         include_items: Include associated request items in response.
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_REQUEST_FIELDS for requests,
+            DEFAULT_REQ_ITEM_FIELDS for items if not specified.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -329,12 +347,15 @@ def get_request_status(
             "Either request_number or request_sys_id is required for status action"
         )
 
+    # Use DEFAULT_REQUEST_FIELDS when no specific fields are requested
+    request_fields = fields if fields is not None else ",".join(DEFAULT_REQUEST_FIELDS)
+
     # Get the request
     if request_sys_id:
         request_result = client.get(
             table=TABLE_REQUEST,
             sys_id=request_sys_id,
-            fields=fields,
+            fields=request_fields,
             display_value=display_value,
         )
         request_data = request_result.get("result", {})
@@ -343,7 +364,7 @@ def get_request_status(
         request_result = client.get(
             table=TABLE_REQUEST,
             query=query,
-            fields=fields,
+            fields=request_fields,
             limit=1,
             display_value=display_value,
         )
@@ -360,9 +381,12 @@ def get_request_status(
         request_id = request_data.get("sys_id") or request_sys_id
         if request_id:
             items_query = f"request={request_id}"
+            # Use DEFAULT_REQ_ITEM_FIELDS when no specific fields are requested
+            item_fields = fields if fields is not None else ",".join(DEFAULT_REQ_ITEM_FIELDS)
             items_result = client.get(
                 table=TABLE_REQ_ITEM,
                 query=items_query,
+                fields=item_fields,
                 display_value=display_value,
             )
             result["items"] = items_result.get("result", [])
@@ -396,6 +420,7 @@ def query_requests(
         active: Filter by active status (true/false).
         query: Additional encoded query string to append.
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_REQUEST_FIELDS if not specified.
         limit: Maximum number of records to return.
         offset: Starting record index for pagination.
         order_by: Field to sort by (prefix with - for descending).
@@ -427,10 +452,13 @@ def query_requests(
 
     full_query = "^".join(query_parts) if query_parts else None
 
+    # Use DEFAULT_REQUEST_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_REQUEST_FIELDS)
+
     result = client.get(
         table=TABLE_REQUEST,
         query=full_query,
-        fields=fields,
+        fields=effective_fields,
         limit=limit,
         offset=offset,
         order_by=order_by,

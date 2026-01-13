@@ -77,6 +77,7 @@ def get_problem(
         client: ServiceNow API client.
         sys_id: The sys_id of the problem to retrieve.
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_FIELDS if not specified.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -89,10 +90,13 @@ def get_problem(
     if not sys_id:
         raise ValidationError("sys_id is required for get action")
 
+    # Use DEFAULT_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
+
     result = client.get(
         table=TABLE_NAME,
         sys_id=sys_id,
-        fields=fields,
+        fields=effective_fields,
         display_value=display_value,
     )
 
@@ -112,6 +116,7 @@ def get_problem_by_number(
         client: ServiceNow API client.
         number: The problem number (e.g., 'PRB0010001').
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_FIELDS if not specified.
         display_value: Optional display value setting ('true', 'false', 'all').
 
     Returns:
@@ -125,10 +130,13 @@ def get_problem_by_number(
 
     query = f"number={number}"
 
+    # Use DEFAULT_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
+
     result = client.get(
         table=TABLE_NAME,
         query=query,
-        fields=fields,
+        fields=effective_fields,
         limit=1,
         display_value=display_value,
     )
@@ -164,6 +172,7 @@ def query_problems(
         active: Filter by active status (true/false).
         query: Additional encoded query string to append.
         fields: Optional comma-separated list of fields to return.
+            Defaults to DEFAULT_FIELDS if not specified.
         limit: Maximum number of records to return.
         offset: Starting record index for pagination.
         order_by: Field to sort by (prefix with - for descending).
@@ -200,10 +209,13 @@ def query_problems(
     # Combine query parts with ^ (AND) operator
     full_query = "^".join(query_parts) if query_parts else None
 
+    # Use DEFAULT_FIELDS when no specific fields are requested
+    effective_fields = fields if fields is not None else ",".join(DEFAULT_FIELDS)
+
     result = client.get(
         table=TABLE_NAME,
         query=full_query,
-        fields=fields,
+        fields=effective_fields,
         limit=limit,
         offset=offset,
         order_by=order_by,
