@@ -47,6 +47,7 @@ from servicenow_api import (
     output_error,
     load_env_file,
     get_config,
+    _parse_quoted_value,
 )
 
 
@@ -131,6 +132,55 @@ class TestServiceNowErrorClasses(unittest.TestCase):
         """ValidationError should inherit from ServiceNowError."""
         error = ValidationError("Invalid input", status_code=400)
         self.assertIsInstance(error, ServiceNowError)
+
+
+# =============================================================================
+# Unit Tests - Quote Parsing
+# =============================================================================
+
+class TestQuoteParsing(unittest.TestCase):
+    """Test quote parsing for env file values."""
+
+    def test_parse_empty_value(self):
+        """_parse_quoted_value should handle empty string."""
+        self.assertEqual(_parse_quoted_value(""), "")
+
+    def test_parse_unquoted_value(self):
+        """_parse_quoted_value should return unquoted values unchanged."""
+        self.assertEqual(_parse_quoted_value("simple_value"), "simple_value")
+
+    def test_parse_double_quoted_value(self):
+        """_parse_quoted_value should remove double quotes."""
+        self.assertEqual(_parse_quoted_value('"quoted"'), "quoted")
+
+    def test_parse_single_quoted_value(self):
+        """_parse_quoted_value should remove single quotes."""
+        self.assertEqual(_parse_quoted_value("'quoted'"), "quoted")
+
+    def test_parse_escaped_double_quote(self):
+        """_parse_quoted_value should handle escaped double quotes."""
+        self.assertEqual(_parse_quoted_value('"value \\"with\\" quotes"'), 'value "with" quotes')
+
+    def test_parse_escaped_single_quote(self):
+        """_parse_quoted_value should handle escaped single quotes."""
+        self.assertEqual(_parse_quoted_value("'value \\'with\\' quotes'"), "value 'with' quotes")
+
+    def test_parse_escaped_backslash(self):
+        """_parse_quoted_value should handle escaped backslashes."""
+        self.assertEqual(_parse_quoted_value('"value \\\\with\\\\ backslash"'), 'value \\with\\ backslash')
+
+    def test_parse_complex_escaped_value(self):
+        """_parse_quoted_value should handle complex escaped strings."""
+        self.assertEqual(_parse_quoted_value('"pass\\"word\\\\123"'), 'pass"word\\123')
+
+    def test_parse_whitespace_handling(self):
+        """_parse_quoted_value should strip surrounding whitespace."""
+        self.assertEqual(_parse_quoted_value('  "quoted"  '), "quoted")
+
+    def test_parse_empty_quoted_string(self):
+        """_parse_quoted_value should handle empty quoted strings."""
+        self.assertEqual(_parse_quoted_value('""'), "")
+        self.assertEqual(_parse_quoted_value("''"), "")
 
 
 # =============================================================================
@@ -288,6 +338,20 @@ class TestServiceNowClient(unittest.TestCase):
 
         header = client._get_auth_header()
         self.assertEqual(header["Authorization"], "Bearer test-api-key")
+
+    def test_client_default_timeout(self):
+        """Client should use default timeout of 30 seconds."""
+        self.assertEqual(self.client.timeout, 30)
+
+    def test_client_custom_timeout(self):
+        """Client should accept custom timeout."""
+        client = ServiceNowClient(self.config, timeout=60)
+        self.assertEqual(client.timeout, 60)
+
+    def test_client_zero_timeout(self):
+        """Client should allow timeout of 0 (no timeout check)."""
+        client = ServiceNowClient(self.config, timeout=0)
+        self.assertEqual(client.timeout, 0)
 
 
 class TestServiceNowClientRequests(unittest.TestCase):
@@ -592,6 +656,47 @@ class TestServiceNowClientOAuth(unittest.TestCase):
         with self.assertRaises(AuthenticationError):
             self.client._obtain_oauth_token()
 
+    @patch('servicenow_api.urlopen')
+    def test_oauth_401_retry_preserves_query_params(self, mock_urlopen):
+        """OAuth 401 retry should preserve query parameters."""
+        # First call - get token
+        token_response = MagicMock()
+        token_response.read.return_value = b'{"access_token": "old-token", "token_type": "Bearer"}'
+        token_response.__enter__ = Mock(return_value=token_response)
+        token_response.__exit__ = Mock(return_value=False)
+
+        # Second call - API request fails with 401
+        mock_401_error = HTTPError(
+            url="https://test.service-now.com/api/now/table/incident",
+            code=401,
+            msg="Unauthorized",
+            hdrs={},
+            fp=BytesIO(b'{"error": "Token expired"}')
+        )
+
+        # Third call - get new token
+        new_token_response = MagicMock()
+        new_token_response.read.return_value = b'{"access_token": "new-token", "token_type": "Bearer"}'
+        new_token_response.__enter__ = Mock(return_value=new_token_response)
+        new_token_response.__exit__ = Mock(return_value=False)
+
+        # Fourth call - retry API request succeeds
+        api_response = MagicMock()
+        api_response.read.return_value = b'{"result": [{"number": "INC001"}]}'
+        api_response.__enter__ = Mock(return_value=api_response)
+        api_response.__exit__ = Mock(return_value=False)
+
+        mock_urlopen.side_effect = [token_response, mock_401_error, new_token_response, api_response]
+
+        result = self.client.get("incident", query="state=1", limit=10)
+
+        # Verify the query params are in the final retry request
+        final_call = mock_urlopen.call_args_list[-1]
+        request = final_call[0][0]
+        self.assertIn("sysparm_query=state%3D1", request.full_url)
+        self.assertIn("sysparm_limit=10", request.full_url)
+        self.assertEqual(result["result"][0]["number"], "INC001")
+
 
 # =============================================================================
 # Unit Tests - Utility Functions
@@ -613,6 +718,19 @@ class TestUtilityFunctions(unittest.TestCase):
         client = create_client(config)
         self.assertIsInstance(client, ServiceNowClient)
         self.assertEqual(client.instance, "https://test.service-now.com")
+
+    def test_create_client_with_timeout(self):
+        """create_client should pass timeout to client."""
+        config = {
+            "instance": "https://test.service-now.com",
+            "username": "admin",
+            "password": "secret",
+            "client_id": None,
+            "client_secret": None,
+            "api_key": None,
+        }
+        client = create_client(config, timeout=120)
+        self.assertEqual(client.timeout, 120)
 
     def test_read_json_input_empty(self):
         """read_json_input should return empty dict for empty input."""

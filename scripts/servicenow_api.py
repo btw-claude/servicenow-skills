@@ -7,6 +7,7 @@ authentication support (Basic and OAuth), and comprehensive error handling.
 """
 
 import os
+import re
 import sys
 import json
 import base64
@@ -14,7 +15,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, Union
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urlencode, urljoin, urlparse, urlunparse
 
 
 # =============================================================================
@@ -73,6 +74,42 @@ class ValidationError(ServiceNowError):
 # Environment Loading
 # =============================================================================
 
+def _parse_quoted_value(value: str) -> str:
+    """
+    Parse a quoted value, handling escaped quotes within.
+
+    Args:
+        value: The value string (with or without quotes).
+
+    Returns:
+        The unquoted value with escaped quotes resolved.
+    """
+    value = value.strip()
+
+    if not value:
+        return value
+
+    # Check for double-quoted strings
+    if value.startswith('"') and value.endswith('"') and len(value) >= 2:
+        # Remove outer quotes and process escaped characters
+        inner = value[1:-1]
+        # Handle escaped double quotes and backslashes
+        inner = inner.replace('\\"', '"')
+        inner = inner.replace('\\\\', '\\')
+        return inner
+
+    # Check for single-quoted strings
+    if value.startswith("'") and value.endswith("'") and len(value) >= 2:
+        # Remove outer quotes and process escaped characters
+        inner = value[1:-1]
+        # Handle escaped single quotes and backslashes
+        inner = inner.replace("\\'", "'")
+        inner = inner.replace('\\\\', '\\')
+        return inner
+
+    return value
+
+
 def load_env_file(env_path: Optional[Path] = None) -> Dict[str, str]:
     """
     Load environment variables from a .claude/env file.
@@ -107,11 +144,7 @@ def load_env_file(env_path: Optional[Path] = None) -> Dict[str, str]:
                     if "=" in line:
                         key, _, value = line.partition("=")
                         key = key.strip()
-                        value = value.strip()
-                        # Remove quotes if present
-                        if (value.startswith('"') and value.endswith('"')) or \
-                           (value.startswith("'") and value.endswith("'")):
-                            value = value[1:-1]
+                        value = _parse_quoted_value(value)
                         env_vars[key] = value
             break  # Use first found env file
 
@@ -181,16 +214,23 @@ class ServiceNowClient:
     Provides methods for common CRUD operations against ServiceNow tables.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    # Default timeout in seconds for HTTP requests
+    DEFAULT_TIMEOUT = 30
+
+    def __init__(self, config: Optional[Dict[str, Any]] = None,
+                 timeout: Optional[int] = None):
         """
         Initialize the ServiceNow client.
 
         Args:
             config: Optional configuration dictionary. If not provided,
                     configuration is loaded from environment.
+            timeout: Optional timeout in seconds for HTTP requests.
+                     Defaults to DEFAULT_TIMEOUT (30 seconds).
         """
         self.config = config or get_config()
         self.instance = self.config["instance"]
+        self.timeout = timeout if timeout is not None else self.DEFAULT_TIMEOUT
         self._access_token: Optional[str] = None
         self._token_type: str = "Bearer"
 
@@ -244,7 +284,7 @@ class ServiceNowClient:
 
         try:
             request = Request(token_url, data=data, headers=headers, method="POST")
-            with urlopen(request) as response:
+            with urlopen(request, timeout=self.timeout) as response:
                 result = json.loads(response.read().decode())
                 self._access_token = result.get("access_token")
                 self._token_type = result.get("token_type", "Bearer")
@@ -281,15 +321,17 @@ class ServiceNowClient:
 
     def _make_request(self, method: str, url: str,
                       data: Optional[Dict[str, Any]] = None,
-                      params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                      params: Optional[Dict[str, Any]] = None,
+                      _retry: bool = False) -> Dict[str, Any]:
         """
         Make an HTTP request to the ServiceNow API.
 
         Args:
             method: HTTP method (GET, POST, PUT, PATCH, DELETE).
-            url: Full URL for the request.
+            url: Full URL for the request (should be base URL without query params).
             data: Optional request body data.
             params: Optional query parameters.
+            _retry: Internal flag to prevent infinite retry loops on 401.
 
         Returns:
             Parsed JSON response.
@@ -300,10 +342,11 @@ class ServiceNowClient:
             NotFoundError: When resource is not found.
             RateLimitError: When rate limit is exceeded.
         """
-        # Add query parameters to URL
+        # Build final URL with query parameters
+        final_url = url
         if params:
             query_string = urlencode(params)
-            url = f"{url}?{query_string}"
+            final_url = f"{url}?{query_string}"
 
         # Prepare headers
         headers = {
@@ -316,8 +359,8 @@ class ServiceNowClient:
         body = json.dumps(data).encode() if data else None
 
         try:
-            request = Request(url, data=body, headers=headers, method=method)
-            with urlopen(request) as response:
+            request = Request(final_url, data=body, headers=headers, method=method)
+            with urlopen(request, timeout=self.timeout) as response:
                 response_body = response.read().decode()
                 if response_body:
                     return json.loads(response_body)
@@ -328,9 +371,10 @@ class ServiceNowClient:
 
             if e.code == 401:
                 # Clear cached token and retry once for OAuth
-                if self._access_token:
+                if self._access_token and not _retry:
                     self._access_token = None
-                    return self._make_request(method, url.split("?")[0], data, params)
+                    # Retry with the base URL (without query params) - params will be re-added
+                    return self._make_request(method, url, data, params, _retry=True)
                 raise AuthenticationError(
                     "Authentication failed",
                     status_code=e.code,
@@ -506,17 +550,19 @@ class ServiceNowClient:
 # Utility Functions
 # =============================================================================
 
-def create_client(config: Optional[Dict[str, Any]] = None) -> ServiceNowClient:
+def create_client(config: Optional[Dict[str, Any]] = None,
+                  timeout: Optional[int] = None) -> ServiceNowClient:
     """
     Factory function to create a ServiceNow client.
 
     Args:
         config: Optional configuration dictionary.
+        timeout: Optional timeout in seconds for HTTP requests.
 
     Returns:
         Configured ServiceNowClient instance.
     """
-    return ServiceNowClient(config)
+    return ServiceNowClient(config, timeout=timeout)
 
 
 def read_json_input() -> Dict[str, Any]:
