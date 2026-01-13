@@ -15,6 +15,9 @@ Retrieve change request details from ServiceNow by sys_id or change number.
   - [Display Value Parameter](#display-value-parameter)
 - [Output](#output)
 - [Related Domains](#related-domains)
+  - [Incident Management](#incident-management)
+  - [Problem Management](#problem-management)
+  - [Service Catalog](#service-catalog)
 - [Errors](#errors)
 
 ## Script

@@ -16,6 +16,9 @@ Search and filter incidents in ServiceNow using various criteria.
   - [Dot-Walking (Related Records)](#dot-walking-related-records)
 - [Output](#output)
 - [Related Domains](#related-domains)
+  - [Problem Management](#problem-management)
+  - [Change Management](#change-management)
+  - [Service Catalog](#service-catalog)
 - [Errors](#errors)
 
 ## Script

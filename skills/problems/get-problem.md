@@ -16,6 +16,9 @@ Retrieve problem details from ServiceNow by sys_id or problem number.
 - [Output](#output)
 - [Workaround Best Practices](#workaround-best-practices)
 - [Related Domains](#related-domains)
+  - [Incident Management](#incident-management)
+  - [Change Management](#change-management)
+  - [Service Catalog](#service-catalog)
 - [Errors](#errors)
 
 ## Script
