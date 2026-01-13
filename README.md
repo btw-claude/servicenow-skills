@@ -156,6 +156,131 @@ Regular API key rotation is a critical security practice. The recommended rotati
 4. **Documentation**: Maintain a key inventory with creation dates, owners, and rotation schedules
 5. **Testing**: Validate new keys in a non-production environment before rotating production credentials
 
+#### Secret Manager Integration Examples
+
+The following examples demonstrate how to integrate ServiceNow API key rotation with popular secret management tools.
+
+**HashiCorp Vault Integration:**
+
+Store and retrieve ServiceNow API keys using HashiCorp Vault's KV secrets engine:
+
+```bash
+# Store a new ServiceNow API key in Vault
+vault kv put secret/servicenow/api-key \
+  key="your-servicenow-api-key" \
+  instance="https://your-instance.service-now.com" \
+  created="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  expires="$(date -u -d '+90 days' +%Y-%m-%dT%H:%M:%SZ)"
+
+# Retrieve the current API key
+vault kv get -field=key secret/servicenow/api-key
+
+# Rotate key with version history (Vault maintains previous versions)
+vault kv put secret/servicenow/api-key \
+  key="new-servicenow-api-key" \
+  instance="https://your-instance.service-now.com" \
+  created="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  expires="$(date -u -d '+90 days' +%Y-%m-%dT%H:%M:%SZ)" \
+  previous_key_valid_until="$(date -u -d '+48 hours' +%Y-%m-%dT%H:%M:%SZ)"
+
+# List key version history
+vault kv metadata get secret/servicenow/api-key
+
+# Roll back to previous key version if needed
+vault kv rollback -version=1 secret/servicenow/api-key
+```
+
+For automated rotation with Vault Agent:
+
+```hcl
+# vault-agent-config.hcl - Template for .claude/env file
+template {
+  source      = "/etc/vault-agent/templates/claude-env.tpl"
+  destination = "/app/.claude/env"
+  perms       = 0600
+}
+```
+
+```bash
+# /etc/vault-agent/templates/claude-env.tpl
+{{- with secret "secret/servicenow/api-key" }}
+SERVICENOW_INSTANCE={{ .Data.data.instance }}
+SERVICENOW_API_KEY={{ .Data.data.key }}
+{{- end }}
+```
+
+**AWS Secrets Manager Integration:**
+
+Store and manage ServiceNow API keys using AWS Secrets Manager:
+
+```bash
+# Create a new secret for ServiceNow API key
+aws secretsmanager create-secret \
+  --name "servicenow/api-key" \
+  --description "ServiceNow API key for Claude Code integration" \
+  --secret-string '{
+    "api_key": "your-servicenow-api-key",
+    "instance": "https://your-instance.service-now.com",
+    "created": "2024-01-15T00:00:00Z",
+    "expires": "2024-04-15T00:00:00Z"
+  }'
+
+# Retrieve the current API key
+aws secretsmanager get-secret-value \
+  --secret-id "servicenow/api-key" \
+  --query 'SecretString' --output text | jq -r '.api_key'
+
+# Update/rotate the API key (creates new version, previous version retained)
+aws secretsmanager put-secret-value \
+  --secret-id "servicenow/api-key" \
+  --secret-string '{
+    "api_key": "new-servicenow-api-key",
+    "instance": "https://your-instance.service-now.com",
+    "created": "2024-04-15T00:00:00Z",
+    "expires": "2024-07-15T00:00:00Z"
+  }'
+
+# List secret version history
+aws secretsmanager list-secret-version-ids \
+  --secret-id "servicenow/api-key"
+
+# Retrieve a specific previous version
+aws secretsmanager get-secret-value \
+  --secret-id "servicenow/api-key" \
+  --version-stage AWSPREVIOUS \
+  --query 'SecretString' --output text | jq -r '.api_key'
+```
+
+Configure automatic rotation with an AWS Lambda function:
+
+```bash
+# Enable automatic rotation (requires Lambda rotation function)
+aws secretsmanager rotate-secret \
+  --secret-id "servicenow/api-key" \
+  --rotation-lambda-arn "arn:aws:lambda:us-east-1:123456789012:function:servicenow-key-rotation" \
+  --rotation-rules '{"AutomaticallyAfterDays": 90}'
+
+# Check rotation status
+aws secretsmanager describe-secret \
+  --secret-id "servicenow/api-key" \
+  --query '{RotationEnabled: RotationEnabled, RotationRules: RotationRules, LastRotatedDate: LastRotatedDate}'
+```
+
+Example script to load API key from AWS Secrets Manager into environment:
+
+```bash
+#!/bin/bash
+# load-servicenow-credentials.sh
+# Source this script to populate environment variables from AWS Secrets Manager
+
+SECRET_JSON=$(aws secretsmanager get-secret-value \
+  --secret-id "servicenow/api-key" \
+  --query 'SecretString' --output text)
+
+export SERVICENOW_INSTANCE=$(echo "$SECRET_JSON" | jq -r '.instance')
+export SERVICENOW_API_KEY=$(echo "$SECRET_JSON" | jq -r '.api_key')
+```
+
 ### General Security Guidelines
 
 1. **Never commit credentials to version control** - Use environment variables or secret managers
