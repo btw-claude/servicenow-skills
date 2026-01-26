@@ -5,6 +5,7 @@ Claude Code skills for ServiceNow ITSM operations - query incidents, changes, pr
 ## Table of Contents
 
 - [Overview](#overview)
+- [Installation](#installation)
 - [Configuration](#configuration)
 - [Authentication Methods](#authentication-methods)
 - [Security Considerations](#security-considerations)
@@ -16,6 +17,16 @@ Claude Code skills for ServiceNow ITSM operations - query incidents, changes, pr
 ## Overview
 
 This skill provides comprehensive ServiceNow ITSM integration through Python. It enables incident management, change management, problem management, service catalog operations, CMDB queries, and company/organization management.
+
+## Installation
+
+Install the required dependencies:
+
+```bash
+pip install -r scripts/requirements.txt
+```
+
+This installs `certifi`, which provides Mozilla's CA certificate bundle for reliable SSL/TLS connections. This is particularly important on macOS where the system certificate store may not be properly configured.
 
 ## Configuration
 

@@ -52,3 +52,4 @@ htmlcov/
 
 # Claude settings
 # Note: settings.local.json is included as a template for local permissions
+.claude

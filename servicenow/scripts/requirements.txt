@@ -1,0 +1,6 @@
+# ServiceNow Skills Dependencies
+# Install with: pip install -r scripts/requirements.txt
+
+# SSL certificate handling (required for macOS)
+# Uses Mozilla's CA bundle instead of system certificates
+certifi>=2024.0.0

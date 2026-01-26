@@ -8,6 +8,7 @@ authentication support (Basic and OAuth), and comprehensive error handling.
 
 import os
 import re
+import ssl
 import sys
 import json
 import base64
@@ -17,6 +18,13 @@ from typing import Optional, Dict, Any, Union
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urljoin, urlparse, urlunparse
+
+# Try to use certifi for SSL certificates (more reliable than system certs on macOS)
+try:
+    import certifi
+    SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    SSL_CONTEXT = ssl.create_default_context()
 
 
 # Configure logger for this module
@@ -366,7 +374,7 @@ class ServiceNowClient:
 
         try:
             request = Request(token_url, data=data, headers=headers, method="POST")
-            with urlopen(request, timeout=self.timeout) as response:
+            with urlopen(request, timeout=self.timeout, context=SSL_CONTEXT) as response:
                 result = json.loads(response.read().decode())
                 self._access_token = result.get("access_token")
                 self._token_type = result.get("token_type", "Bearer")
@@ -442,7 +450,7 @@ class ServiceNowClient:
 
         try:
             request = Request(final_url, data=body, headers=headers, method=method)
-            with urlopen(request, timeout=self.timeout) as response:
+            with urlopen(request, timeout=self.timeout, context=SSL_CONTEXT) as response:
                 response_body = response.read().decode()
                 if response_body:
                     return json.loads(response_body)
@@ -512,6 +520,7 @@ class ServiceNowClient:
             limit: Optional maximum number of records to return.
             offset: Optional starting record index for pagination.
             order_by: Optional field to sort results by (prefix with - for descending).
+                Appended to sysparm_query as ORDERBY/ORDERBYDESC for reliable sorting.
             display_value: Optional display value setting ('true', 'false', 'all').
 
         Returns:
@@ -530,18 +539,29 @@ class ServiceNowClient:
         url = self._build_url(table, sys_id)
 
         params = {}
-        if query:
-            params["sysparm_query"] = query
         if fields:
             params["sysparm_fields"] = fields
         if limit is not None:
             params["sysparm_limit"] = limit
         if offset is not None:
             params["sysparm_offset"] = offset
-        if order_by:
-            params["sysparm_order_by"] = order_by
         if display_value:
             params["sysparm_display_value"] = display_value
+
+        # Build sysparm_query with optional ordering
+        # Append ORDERBY/ORDERBYDESC to sysparm_query for reliable sorting
+        query_value = query or ""
+        if order_by:
+            if order_by.startswith("-"):
+                order_clause = f"ORDERBYDESC{order_by[1:]}"
+            else:
+                order_clause = f"ORDERBY{order_by}"
+            if query_value:
+                query_value = f"{query_value}^{order_clause}"
+            else:
+                query_value = order_clause
+        if query_value:
+            params["sysparm_query"] = query_value
 
         return self._make_request("GET", url, params=params if params else None)
 
